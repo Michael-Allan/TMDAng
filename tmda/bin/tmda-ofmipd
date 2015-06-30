@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3.4
 #
 # Copyright (C) 2001-2007 Jason R. Mastaler <jason@mastaler.com>
 #
@@ -41,16 +41,17 @@ logger = logging.getLogger('tmda.ofmipd')
 logger.setLevel(logging.WARNING)
 logger.addHandler(logging.StreamHandler())
 
-try:
-    import paths
-except ImportError:
-    pass
-
 
 from TMDA import Util
 from TMDA import Version
 
+ipauthmapfile = None  # /etc/ipauthmap or ~/.tmda/ipauthmap
+opts = None
+_authenticator = None
+ssl_context = None
+
 # Classes
+
 
 class Authenticator(object):
     """Base class for authenticators, which determine the validity of an
@@ -131,6 +132,7 @@ class Authenticator(object):
         logger.info('Authentication %s for user %r using %r', result, username,
                     self)
 
+
 class ChainAuthenticator(Authenticator):
     """A special-case authenticator that allows multiple authenticators to be
     chained together. Each is checked in turn, and if any one succeeds in
@@ -176,6 +178,7 @@ class ChainAuthenticator(Authenticator):
     def __repr__(self):
         return '%s(%r)' % (self.__class__.__name__, self._auths)
 
+
 class FileAuthenticator(Authenticator):
     def __init__(self, filename):
         Authenticator.__init__(self)
@@ -210,6 +213,7 @@ class FileAuthenticator(Authenticator):
     def __repr__(self):
         return '%s(%r)' % (self.__class__.__name__, self._filename)
 
+
 class PamAuthenticator(Authenticator):
     # XXX There's a significant problem here if the PAM service imposes a
     # delay on failure. This would block all connected clients. Linux-PAM
@@ -217,12 +221,6 @@ class PamAuthenticator(Authenticator):
     # A work-around would be to use a PAM service that does not impose a
     # failure delay (e.g., uses pam_unix with the nodelay option).
     def __init__(self, service='login'):
-        try:
-            import PAM
-        except ImportError:
-            raise ImportError('Python PAM '
-                '(http://www.pangalactic.org/PyPAM/) required.')
-
         Authenticator.__init__(self)
         self._service = service
 
@@ -230,8 +228,7 @@ class PamAuthenticator(Authenticator):
         import PAM
 
         auth = PAM.pam()
-        conv = lambda auth, msg, appdata: \
-                      self._conv(msg, password)
+        conv = lambda auth, msg, appdata: self._conv(msg, password)
         auth.start(self._service, username, conv)
         try:
             auth.authenticate()
@@ -259,6 +256,7 @@ class PamAuthenticator(Authenticator):
     def __repr__(self):
         return '%s(%r)' % (self.__class__.__name__, self._service)
 
+
 class CheckpwAuthenticator(Authenticator):
     """authprog should return 0 for auth ok, and a positive integer in
     case of a problem."""
@@ -278,6 +276,7 @@ class CheckpwAuthenticator(Authenticator):
 
     def __repr__(self):
         return '%s(%r)' % (self.__class__.__name__, self._cmd)
+
 
 class RemoteAuthenticator(Authenticator):
     def __init__(self, host, port):
@@ -354,7 +353,7 @@ class RemoteAuthenticator(Authenticator):
                         val_port = int(pieces[2])
                         if not (0 <= val_port <= 0xFFFF):
                             raise ValueError('Not a valid port number')
-                    except ValueError, e:
+                    except ValueError:
                         logger.error('Invalid port in ipauthmap file, line %d',
                                      line_num)
                         continue
@@ -366,6 +365,7 @@ class RemoteAuthenticator(Authenticator):
             pass
 
         return ipauthmap
+
 
 class ImapAuthenticator(RemoteAuthenticator):
     def __init__(self, host, port, secure):
@@ -391,8 +391,9 @@ class ImapAuthenticator(RemoteAuthenticator):
         return False
 
     def __repr__(self):
-        return '%s(%r, %r, %r)' % (self.__class__.__name__, self._host,
-               self._port, self._secure)
+        name = self.__class__.__name__
+        return '%s(%r, %r, %r)' % (name, self._host, self._port, self._secure)
+
 
 class Pop3Authenticator(RemoteAuthenticator):
     def __init__(self, host, port, use_apop):
@@ -418,17 +419,18 @@ class Pop3Authenticator(RemoteAuthenticator):
         return False
 
     def __repr__(self):
-        return '%s(%r, %r, %r)' % (self.__class__.__name__, self._host,
-               self._port, self._use_apop)
+        name = self.__class__.__name__
+        return '%s(%r, %r, %r)' % (name, self._host, self._port, self._use_apop)
+
 
 class LdapAuthenticator(RemoteAuthenticator):
     def __init__(self, host, port, dn):
         try:
             import ldap
         except ImportError:
-            raise ImportError('python-ldap ' \
-                '(http://www.python-ldap.org/) required.')
-
+            msg = 'python-ldap (http://www.python-ldap.org/) required.'
+            raise ImportError(msg)
+        del ldap
         try:
             dn % ''
         except TypeError:
@@ -452,8 +454,9 @@ class LdapAuthenticator(RemoteAuthenticator):
         return False
 
     def __repr__(self):
-        return '%s(%r, %r, %r)' % (self.__class__.__name__, self._host,
-               self._port, self._dn)
+        name = self.__class__.__name__
+        return '%s(%r, %r, %r)' % (name, self._host, self._port, self._dn)
+
 
 class AuthOptions(object):
     _opt_map = {
@@ -464,6 +467,7 @@ class AuthOptions(object):
         '-m'         : PamAuthenticator,
         '--pamauth'  : PamAuthenticator,
     }
+
     def __init__(self):
         self._auths = []
 
@@ -520,6 +524,7 @@ class AuthOptions(object):
         else:
             return ChainAuthenticator(self._auths)
 
+
 class SMTPSession(asynchat.async_chat):
     COMMAND = 0
     DATA = 1
@@ -573,7 +578,7 @@ class SMTPSession(asynchat.async_chat):
         # decrypt the data and send it here over a pipe...
         # Note: Whilst tcpserver does provide these variables, the
         # xinetd/stunnel combination does not.
-        if opts.one_session and os.environ.has_key('TCPREMOTEIP'):
+        if opts.one_session and 'TCPREMOTEIP' in os.environ:
             self.__peerip = os.environ['TCPREMOTEIP']
             self.__peername = os.environ.get('TCPREMOTEHOST', None)
             if not self.__peername:
@@ -589,7 +594,7 @@ class SMTPSession(asynchat.async_chat):
             self._local = (self._localip, self._localport)
         else:
             # xinetd (or stunnel?) does at least provide REMOTE_HOST.
-            if opts.one_session and os.environ.has_key('REMOTE_HOST'):
+            if opts.one_session and 'REMOTE_HOST' in os.environ:
                 self.__peerip = os.environ['REMOTE_HOST']
                 self.__peerport = ''
                 self.__peer = (self.__peerip, self.__peerport)
@@ -655,9 +660,8 @@ class SMTPSession(asynchat.async_chat):
         result = []
         allowed_auths = self.auth_methods()
         if allowed_auths:
-            result.append('AUTH %s' %
-                ' '.join([s.upper() for s in allowed_auths]))
-
+            allowed_auths_s = ' '.join([s.upper() for s in allowed_auths])
+            result.append('AUTH %s' % allowed_auths_s)
         return result
 
     def recv_header_extra(self):
@@ -686,14 +690,8 @@ class SMTPSession(asynchat.async_chat):
             if not line:
                 self.push('500 Error: bad syntax')
                 return
-            method = None
-            i = line.find(' ')
-            if i < 0:
-                command = line.upper()
-                arg = None
-            else:
-                command = line[:i].upper()
-                arg = line[i+1:].strip()
+            command, arg = (line.split(' ', 1) + [None])[:2]
+            command = command.upper()
             if not self.valid_command(command, arg):
                 return
             method = getattr(self, 'smtp_' + command, None)
@@ -707,7 +705,7 @@ class SMTPSession(asynchat.async_chat):
             # to RFC 2821, Section 4.5.2.
             data = []
             for text in line.split('\r\n'):
-                if text and text[0] == '.':
+                if text.startswith('.'):
                     data.append(text[1:])
                 else:
                     data.append(text)
@@ -856,8 +854,7 @@ class SMTPSession(asynchat.async_chat):
             verify = self.verify_cram_md5(self.__auth_resp1,
                                           self.__auth_cram_md5_ticket)
         elif sasl == 'login':
-            verify =  self.verify_login(self.__auth_resp1,
-                                        self.__auth_resp2)
+            verify = self.verify_login(self.__auth_resp1, self.__auth_resp2)
         if verify == 1:
             self.auth_notify_succeed()
         else:
@@ -865,7 +862,6 @@ class SMTPSession(asynchat.async_chat):
         self.auth_reset_state()
 
     def auth_challenge(self):
-        line = EMPTYSTRING.join(self.__line)
         if self.__auth_resp1 is None:
             # No initial response, issue first server challenge
             if self.__auth_sasl == 'plain':
@@ -875,23 +871,18 @@ class SMTPSession(asynchat.async_chat):
             elif self.__auth_sasl == 'login':
                 self.push('334 VXNlcm5hbWU6')
             return
-        if self.__auth_resp1 is not None and self.__auth_resp2 is None:
+        if self.__auth_resp2 is None:
             # Client sent an initial response
-            if self.__auth_sasl == 'plain':
-                # Perform authentication
-                self.auth_verify()
-            elif self.__auth_sasl == 'cram-md5':
+            if self.__auth_sasl in ('plain', 'cram-md5'):
                 # Perform authentication
                 self.auth_verify()
             elif self.__auth_sasl == 'login':
                 # Issue second server challenge
                 self.push('334 UGFzc3dvcmQ6')
             return
-        if self.__auth_resp1 is not None and self.__auth_resp2 is not None:
-            # Client sent a second response (only if AUTH=LOGIN),
-            # perform authentication
-            self.auth_verify()
-            return
+        # Client sent a second response (only if AUTH=LOGIN),
+        # perform authentication
+        self.auth_verify()
 
     # ESMTP/SMTP commands
 
@@ -909,9 +900,9 @@ class SMTPSession(asynchat.async_chat):
         # to add later.
         rh = []
         rh.append('from %s' % (arg))
-        if ((arg.lower() != self.__peername.lower()) and
-            (self.__peername.lower() != self.__peerip)):
-            rh.append('(%s [%s])' % (self.__peername, self.__peerip))
+        pname = self.__peername
+        if (arg.lower() != pname.lower()) and (pname.lower() != self.__peerip):
+            rh.append('(%s [%s])' % (pname, self.__peerip))
         else:
             rh.append('(%s)' % (self.__peerip))
         extra = self.recv_header_extra()
@@ -1037,9 +1028,12 @@ class SSLSocket(object):
         else:
             return getattr(self._sock, name)
 
-# A producer for async_chat that produces no data, but calls a provided
-# function instead.
+
 class CallbackProducer(object):
+    """
+    A producer for async_chat that produces no data, but calls a provided
+    function instead.
+    """
     def __init__(self, function):
         self._function = function
 
@@ -1047,13 +1041,14 @@ class CallbackProducer(object):
         self._function()
         return ''
 
+
 class SecureSMTPSession(SMTPSession):
     _start_ssl_values = (
-        'immediate',     # An SSL connection
-        'optional',      # STARTTLS optional
-        'localoptional', # STARTTLS required except for local connections
-        'required',      # STARTTLS required
-        'done',          # STARTTLS finished
+        'immediate',      # An SSL connection
+        'optional',       # STARTTLS optional
+        'localoptional',  # STARTTLS required except for local connections
+        'required',       # STARTTLS required
+        'done',           # STARTTLS finished
     )
 
     def __init__(self, conn, ssl_context, process_msg_func, start_ssl):
@@ -1133,7 +1128,8 @@ class SecureSMTPSession(SMTPSession):
     # SMTP commands
 
     def smtp_STARTTLS(self, arg):
-        """RFC 3207 - SMTP Service Extension for Secure SMTP over Transport Layer Security"""
+        """RFC 3207 - SMTP Service Extension for Secure SMTP over
+        Transport Layer Security"""
         if self._ssl_state not in ('required', 'optional'):
             # Not TLS mode, or we have already done STARTTLS
             self.push('503 Duplicate or disallowed STARTTLS')
@@ -1149,6 +1145,7 @@ class SecureSMTPSession(SMTPSession):
         self.push_with_producer(CallbackProducer(self.start_ssl))
         self.push_with_producer(CallbackProducer(self.init_dynamic_state))
         self._ssl_state = 'done'
+
 
 class SMTPServer(asyncore.dispatcher):
     """Run an SMTP server daemon - accept new socket connections and
@@ -1226,7 +1223,7 @@ def process_message_vdomain(peer, mailfrom, rcpttos, data, auth_username):
             rpid, status = os.wait()
             # Did tmda-inject succeed?
             if status != 0:
-                raise IOError, 'tmda-inject failed!'
+                raise IOError('tmda-inject failed!')
             return
         else:
             # The 'prepend' is the system user in charge of this virtual
@@ -1235,7 +1232,7 @@ def process_message_vdomain(peer, mailfrom, rcpttos, data, auth_username):
                                              opts.vdomainspath)
             if not prepend:
                 logger.error('Error: "%s" is not a virtual domain', domain)
-                os._exit(-1)
+                sys.exit(-1)
             os.seteuid(0)
             os.setgid(Util.getgid(prepend))
             os.setgroups(Util.getgrouplist(prepend))
@@ -1251,37 +1248,30 @@ def process_message_vdomain(peer, mailfrom, rcpttos, data, auth_username):
     # change inject_cmd to pass the message through if
     # --pure-proxy was specified and the .tmda/config file is
     # missing.
-    if opts.pure_proxy and not os.path.exists(os.path.join
-                                         (vhomedir, '.tmda', 'config')):
-        sendmail_program = os.environ.get('TMDA_SENDMAIL_PROGRAM') \
-                           or '/usr/sbin/sendmail'
-        inject_cmd = [sendmail_program, '-f', mailfrom, '-i', '--'] + rcpttos
+    cfgfile = os.path.join(vhomedir, '.tmda', 'config')
+    if opts.pure_proxy and not os.path.exists(cfgfile):
+        cmd = os.environ.get('TMDA_SENDMAIL_PROGRAM') or '/usr/sbin/sendmail'
+        inject_cmd = [cmd, '-f', mailfrom, '-i', '--'] + rcpttos
     try:
         Util.runcmd_checked(inject_cmd, data)
-    except Exception, err:
+    except Exception:
         logger.exception('Error running injection command')
         if running_as_root:
-            os._exit(-1)
+            sys.exit(-1)
     if running_as_root:
         # Should never get here!
-        os._exit(0)
+        sys.exit(0)
 
 
 def process_message_sysuser(peer, mailfrom, rcpttos, data, auth_username):
     """Using this server for outgoing smtpd, the authenticated user
     will have his mail tagged using his TMDA config file."""
-    if opts.configdir is None:
-        # ~user/.tmda/
-        tmda_configdir = os.path.join(os.path.expanduser
-                                      ('~' + auth_username), '.tmda')
-    else:
-        tmda_configdir = os.path.join(os.path.expanduser
-                                      (opts.configdir), auth_username)
+    configdir = opts.configdir or '~' + auth_username
+    tmda_configdir = os.path.join(os.path.expanduser(configdir), '.tmda')
     tmda_configfile = os.path.join(tmda_configdir, 'config')
     if opts.pure_proxy and not os.path.exists(tmda_configfile):
-        sendmail_program = os.environ.get('TMDA_SENDMAIL_PROGRAM') \
-                           or '/usr/sbin/sendmail'
-        inject_cmd = [sendmail_program, '-f', mailfrom, '-i', '--'] + rcpttos
+        cmd = os.environ.get('TMDA_SENDMAIL_PROGRAM') or '/usr/sbin/sendmail'
+        inject_cmd = [cmd, '-f', mailfrom, '-i', '--'] + rcpttos
     else:
         execdir = os.path.dirname(os.path.abspath(program))
         inject_path = os.path.join(execdir, 'tmda-inject')
@@ -1304,15 +1294,15 @@ def process_message_sysuser(peer, mailfrom, rcpttos, data, auth_username):
             os.setuid(Util.getuid(auth_username))
             try:
                 Util.runcmd_checked(inject_cmd, data)
-            except Exception, err:
+            except Exception:
                 logger.exception('Error running injection command')
-                os._exit(-1)
-            os._exit(0)
+                sys.exit(-1)
+            sys.exit(0)
         else:
             rpid, status = os.wait()
             # Did tmda-inject succeed?
             if status != 0:
-                raise IOError, 'tmda-inject failed!'
+                raise IOError('tmda-inject failed!')
     else:
         # no need to fork
         Util.runcmd_checked(inject_cmd, data)
@@ -1332,13 +1322,13 @@ def sig_handler(sig_num, frame):
 
 
 # Constants
-defaultauthports = { 'imap': 143,
-                     'imaps': 993,
-                     'apop': 110,
-                     'pop3': 110,
-                     'ldap': 389,
-                     # 'pop3s': 995,
-                     }
+defaultauthports = {'imap': 143,
+                    'imaps': 993,
+                    'apop': 110,
+                    'pop3': 110,
+                    'ldap': 389,
+                    # 'pop3s': 995,
+                    }
 
 NEWLINE = '\n'
 EMPTYSTRING = ''
