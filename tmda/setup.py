@@ -42,4 +42,7 @@ setup( author = 'Jason R. Mastaler, Kevin Goodsell, Paul Jimenez, and others'
      , package_data = {}
      , install_requires = []
      , extras_require = { }
+     , tests_require = ['virtualenv>=1.11',
+                        'pytest',
+                        ]
       )

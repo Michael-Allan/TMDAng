@@ -5,7 +5,7 @@ env:
 
 test: env
 	if [ ! -f ./env/bin/py.test ]; then ./env/bin/pip install pytest ; fi
-	./env/bin/py.test 
+	cd tests && ../env/bin/py.test
 
 clean:
 	rm -rf env build dist
