@@ -29,13 +29,14 @@ import time
 import hmac
 from hashlib import sha1
 
-import Defaults
-import Util
+from . import Defaults
+from . import Util
 
 def tmda_mac(*items):
     """Create a SHA-1 HMAC based on items (which must be strings)
     and return a hex string cropped to HMAC_BYTES."""
-    mac = hmac.new(Defaults.CRYPT_KEY, ''.join(items), sha1)
+    itemlist = bytes(''.join(items), 'utf-8')
+    mac = hmac.new(Defaults.CRYPT_KEY, itemlist, sha1)
     hex_size = 2 * Defaults.HMAC_BYTES
     return mac.hexdigest()[:hex_size]
 

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
 # Copyright (C) 2001-2007 Jason R. Mastaler <jason@mastaler.com>
 #
@@ -30,6 +30,7 @@ try:
     import paths
 except ImportError:
     pass
+del paths
 
 from TMDA import Version
 
@@ -129,7 +130,7 @@ parser = OptionParser(option_list=opt_list, description=opt_desc,
 (opts, args) = parser.parse_args()
 
 if opts.full_version:
-    print Version.ALL
+    print(Version.ALL)
     sys.exit()
 if opts.config_file:
     os.environ['TMDARC'] = opts.config_file
@@ -172,7 +173,6 @@ from TMDA.Queue.Queue import Queue
 
 from cStringIO import StringIO
 from email.utils import parseaddr, getaddresses
-import email
 import fileinput
 import string
 import time
@@ -332,7 +332,9 @@ def logit(action, msg):
     if action in ('DELIVER', 'OK') and Defaults.DELIVERY == '_filter_':
         action += ' [filtered to stdout]'
     action_msg = action + ' ' + msg
-    if Defaults.LOGFILE_INCOMING and recipient_address:
+    if not recipient_address:
+        return
+    if Defaults.LOGFILE_INCOMING:
         from TMDA import MessageLogger
         logger = MessageLogger.MessageLogger(Defaults.LOGFILE_INCOMING,
                                              msgin,
@@ -341,7 +343,7 @@ def logit(action, msg):
                                              msg_size = orig_msgin_size,
                                              action_msg = action_msg)
         logger.write()
-    if Defaults.ACTION_HEADER_INCOMING and recipient_address:
+    if Defaults.ACTION_HEADER_INCOMING:
         del msgin['X-TMDA-Action']
         msgin['X-TMDA-Action'] = action_msg
 
@@ -352,13 +354,13 @@ def autorespond_to_sender(sender):
     if envelope_sender == '<>' or \
            envelope_sender == '#@[]' or \
            envelope_sender.lower().startswith('mailer-daemon'):
-        logit ('NOREPLY', '(envelope sender = %s)' % envelope_sender)
-        return 0
+        logit('NOREPLY', '(envelope sender = %s)' % envelope_sender)
+        return False
     # Majordomo messages don't give any indication that they are
     # auto-responses. tsk, tsk.
     if envelope_sender.lower().startswith('majordomo'):
-        logit ('NOREPLY', '(Majordomo)')
-        return 0
+        logit('NOREPLY', '(Majordomo)')
+        return False
     # Try and detect an auto-response.
     guilty_header = None
     auto_submitted = msgin.get('auto-submitted')
@@ -383,8 +385,8 @@ def autorespond_to_sender(sender):
         if precedence and precedence.lower() in ('bulk', 'junk', 'list'):
             guilty_header = 'Precedence: %s' % precedence
     if guilty_header:
-        logit ('NOREPLY', '(%s)' % guilty_header)
-        return 0
+        logit('NOREPLY', '(%s)' % guilty_header)
+        return False
     # The above methods have been verified to detect list messages
     # from the following mailing list management packages/services:
     #
@@ -396,7 +398,7 @@ def autorespond_to_sender(sender):
     # qmail-autoresponder (http://untroubled.org/qmail-autoresponder/).
     # See qmail-autoresponder(1) for more details.
     if Defaults.MAX_AUTORESPONSES_PER_DAY == 0:
-        return 1
+        return True
     if os.path.isdir(Defaults.RESPONSE_DIR):
         os.chdir(Defaults.RESPONSE_DIR)
         files = os.listdir('.')
@@ -425,8 +427,8 @@ def autorespond_to_sender(sender):
             logit('NOREPLY',
                   '(%s = %s)' % ('MAX_AUTORESPONSES_PER_DAY',
                                  Defaults.MAX_AUTORESPONSES_PER_DAY))
-            return 0
-    return 1
+            return False
+    return True
 
 
 def send_bounce(bounce_message, type):
@@ -654,7 +656,7 @@ def verify_sender_cookie(sender_address,sender_cookie):
         addr.verify(sender_address)
         logit("OK", "good_sender_cookie")
         mta.deliver(msgin)
-    except Address.AddressError, msg:
+    except Address.AddressError:
         do_default_action(Defaults.ACTION_FAIL_SENDER.lower(),
                           'action_fail_sender',
                           'bounce_fail_sender.txt')

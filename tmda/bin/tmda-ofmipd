@@ -38,9 +38,11 @@ import re
 import logging
 
 logger = logging.getLogger('tmda.ofmipd')
-logger.setLevel(logging.WARNING)
+logger.setLevel(logging.DEBUG)
 logger.addHandler(logging.StreamHandler())
 
+tmda_root = os.path.join(os.path.dirname(__file__), '..')
+sys.path.append(tmda_root)
 
 from TMDA import Util
 from TMDA import Version
@@ -544,7 +546,7 @@ class SMTPSession(asynchat.async_chat):
 
         # Initialize object state
 
-        self.set_terminator('\r\n')
+        self.set_terminator(b'\r\n')
         self.init_static_state()
         self.init_dynamic_state()
 
@@ -661,7 +663,7 @@ class SMTPSession(asynchat.async_chat):
         allowed_auths = self.auth_methods()
         if allowed_auths:
             allowed_auths_s = ' '.join([s.upper() for s in allowed_auths])
-            result.append('AUTH %s' % allowed_auths_s)
+            result.append('AUTH ' + allowed_auths_s)
         return result
 
     def recv_header_extra(self):
@@ -675,16 +677,20 @@ class SMTPSession(asynchat.async_chat):
 
     # Overrides base class for convenience
     def push(self, msg):
-        asynchat.async_chat.push(self, msg + '\r\n')
+        line = bytes(msg + '\r\n', 'utf-8', 'replace')
+        logger.debug('S: %r', line)
+        asynchat.async_chat.push(self, line)
 
     # Implementation of base class abstract method
     def collect_incoming_data(self, data):
+        #self.__line.append(data.decode('ASCII', 'ignore'))
         self.__line.append(data)
 
     # Implementation of base class abstract method
     def found_terminator(self):
-        line = EMPTYSTRING.join(self.__line)
-        logger.debug('Data: %r', line)
+        line = b''.join(self.__line)
+        logger.debug('C: %r', line)
+        line = line.decode('ascii', 'ignore')
         self.__line = []
         if self.__state == self.COMMAND:
             if not line:
@@ -733,7 +739,7 @@ class SMTPSession(asynchat.async_chat):
             self.__rcpttos = []
             self.__mailfrom = None
             self.__state = self.COMMAND
-            self.set_terminator('\r\n')
+            self.set_terminator(b'\r\n')
             self.push(status)
         elif self.__state == self.AUTH:
             if line == '*':
@@ -789,9 +795,11 @@ class SMTPSession(asynchat.async_chat):
         except:
             return 501
         try:
-            username, username, password = response.split('\0')
+            username, username, password = response.split(b'\0')
         except ValueError:
             return 0
+        username = username.decode('ascii', 'ignore')
+        password = password.decode('ascii', 'ignore')
         self.__auth_username = username.lower()
         if _authenticator.plain_check(self.__auth_username, password,
                                       self._localip):
@@ -972,7 +980,7 @@ class SMTPSession(asynchat.async_chat):
             self.push('501 Syntax: DATA')
             return
         self.__state = self.DATA
-        self.set_terminator('\r\n.\r\n')
+        self.set_terminator(b'\r\n.\r\n')
         self.push('354 End data with <CR><LF>.<CR><LF>')
 
     def smtp_AUTH(self, arg):
@@ -1039,7 +1047,7 @@ class CallbackProducer(object):
 
     def more(self):
         self._function()
-        return ''
+        return b''
 
 
 class SecureSMTPSession(SMTPSession):
@@ -1186,12 +1194,12 @@ class SMTPServer(asyncore.dispatcher):
 
 def b64_encode(s):
     """base64 encoding without the trailing newline."""
-    return base64.encodestring(s)[:-1]
+    return base64.encodestring(bytes(s, 'ascii'))[:-1]
 
 
 def b64_decode(s):
     """base64 decoding."""
-    return base64.decodestring(s)
+    return base64.decodestring(bytes(s, 'ascii'))
 
 
 def process_message_fail(peer, mailfrom, rcpttos, data, auth_username):
@@ -1331,7 +1339,6 @@ defaultauthports = {'imap': 143,
                     }
 
 NEWLINE = '\n'
-EMPTYSTRING = ''
 
 
 # Runtime global variables
@@ -1608,7 +1615,7 @@ def handle_opts():
     (opts, args) = parser.parse_args()
 
     if opts.full_version:
-        print Version.ALL
+        print(Version.ALL)
         sys.exit()
     if opts.vhomescript and opts.configdir:
         parser.error("options '--vhome-script' and '--configdir' are incompatible!")
@@ -1639,9 +1646,8 @@ def handle_opts():
             raise ImportError('Python OpenSSL '
                 '(http://pyopenssl.sourceforge.net/) required.')
 
-        if (not opts.ssl_cert) or (not opts.ssl_key):
-            raise ValueError, \
-                '--ssl-cert and --ssl-key are required when using --ssl or --tls'
+        if not (opts.ssl_cert and opts.ssl_key):
+            raise ValueError('--ssl-cert and --ssl-key are required when using --ssl or --tls')
 
         ssl_context = SSL.Context(SSL.SSLv23_METHOD)
         ssl_context.set_cipher_list(opts.ciphers)
