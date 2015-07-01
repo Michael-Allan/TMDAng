@@ -528,8 +528,7 @@ def verify_confirm_cookie(confirm_cookie, confirm_action):
                     parseaddr(msg.get('x-primary-address'))[1],
                     parseaddr(msg.get('return-path'))[1])
                 if not confirm_append_addr:
-                    raise IOError, \
-                          confirmed_mailid + ' has no Return-Path header!'
+                    raise IOError(confirmed_mailid + ' has no Return-Path header!')
                 if Defaults.CONFIRM_APPEND:
                     if Util.append_to_file(confirm_append_addr,
                                            Defaults.CONFIRM_APPEND) != 0:
@@ -643,8 +642,7 @@ def verify_dated_cookie(dated_cookie):
             elif type(Defaults.ACTION_EXPIRED_DATED) is not dict:
                 errmsg = 'ACTION_EXPIRED_DATED is wrong type (%s). ' % \
                     type(Defaults.ACTION_EXPIRED_DATED)
-                raise TypeError, errmsg + \
-                    'Must be string or dictionary'
+                raise TypeError(errmsg + 'Must be string or dictionary')
             else:
                 dispose_expired_dated(cookie_date)
 

@@ -65,7 +65,7 @@ except:
 
         from TMDA.Defaults import LOGFILE_DEBUG
         if not LOGFILE_DEBUG:
-            raise NameError, 'LOGFILE_DEBUG is not defined'
+            raise NameError('LOGFILE_DEBUG is not defined')
         print('See', LOGFILE_DEBUG, 'for traceback')
         fp = open(LOGFILE_DEBUG, 'a')
 
