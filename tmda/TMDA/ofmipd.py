@@ -41,11 +41,8 @@ logger = logging.getLogger('tmda.ofmipd')
 logger.setLevel(logging.DEBUG)
 logger.addHandler(logging.StreamHandler())
 
-tmda_root = os.path.join(os.path.dirname(__file__), '..')
-sys.path.append(tmda_root)
-
-from TMDA import Util
-from TMDA import Version
+from . import Util
+from . import Version
 
 ipauthmapfile = None  # /etc/ipauthmap or ~/.tmda/ipauthmap
 opts = None
@@ -186,7 +183,7 @@ class FileAuthenticator(Authenticator):
         Authenticator.__init__(self)
 
         mode = Util.getfilemode(filename)
-        if mode not in (400, 600):
+        if mode not in (0o400, 0o600):
             raise IOError('authfile "%s" must be chmod 400 or 600!', filename)
 
         self._filename = filename
@@ -202,7 +199,7 @@ class FileAuthenticator(Authenticator):
         dictionary containing username:password pairs.  Username is
         returned in lowercase."""
         authdict = {}
-        fp = file(self._filename, 'r')
+        fp = open(self._filename, 'r')
         for line in fp:
             line = line.strip()
             if line == '' or line.startswith('#'):
@@ -227,7 +224,12 @@ class PamAuthenticator(Authenticator):
         self._service = service
 
     def _plain_check(self, username, password, localip):
-        import PAM
+        # FIXME: PAM is aka PyPAM and is unmaintained (but still shipped in dbian
+        #        and ubuntu).  To get all the pypi dependencies correct, this
+        #        should be ported to use https://pypi.python.org/pypi/python-pam/1.8.2
+        #        or the like
+        return False  # fail closed
+        import pam as PAM
 
         auth = PAM.pam()
         conv = lambda auth, msg, appdata: self._conv(msg, password)
@@ -242,7 +244,7 @@ class PamAuthenticator(Authenticator):
         return True
 
     def _conv(self, msgs, password):
-        import PAM
+        import pam as PAM
 
         result = []
         for (msg, style) in msgs:
@@ -327,7 +329,7 @@ class RemoteAuthenticator(Authenticator):
         space_matcher = re.compile(r'\s+')
         ipauthmap = {}
         try:
-            fp = file(filename, 'r')
+            fp = open(filename, 'r')
             line_num = 0
             for line in fp:
                 line_num += 1
@@ -677,9 +679,13 @@ class SMTPSession(asynchat.async_chat):
 
     # Overrides base class for convenience
     def push(self, msg):
-        line = bytes(msg + '\r\n', 'utf-8', 'replace')
+        line = msg
+        if type(line) == type(''):
+            line = bytes(line, 'utf-8', 'replace')
+        elif type(line) != type(b''):
+            raise Exception("Bad argument type to push()! Need str or bytes, got %r." % type(line))
         logger.debug('S: %r', line)
-        asynchat.async_chat.push(self, line)
+        asynchat.async_chat.push(self, line + b'\r\n')
 
     # Implementation of base class abstract method
     def collect_incoming_data(self, data):
@@ -875,7 +881,7 @@ class SMTPSession(asynchat.async_chat):
             if self.__auth_sasl == 'plain':
                 self.push('334 ')
             elif self.__auth_sasl == 'cram-md5':
-                self.push('334 ' + b64_encode(self.__auth_cram_md5_ticket))
+                self.push(b'334 ' + b64_encode(self.__auth_cram_md5_ticket))
             elif self.__auth_sasl == 'login':
                 self.push('334 VXNlcm5hbWU6')
             return

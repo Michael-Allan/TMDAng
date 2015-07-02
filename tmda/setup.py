@@ -29,9 +29,7 @@ setup( author = 'Jason R. Mastaler, Kevin Goodsell, Paul Jimenez, and others'
      , description = ('The Tagged Message Delivery Agent (TMDA) is a set of '
                       'anti-spam measures, including white-listing, black-listing,'
                       'challenge-response, and tagged addresses')
-     , entry_points = { 'console_scripts': [ 'aspen = aspen.server:main'
-                                           , 'thrash = thrash:main'
-                                           , 'fcgi_aspen = fcgi_aspen:main [fcgi]'
+     , entry_points = { 'console_scripts': [ 'tmda-ofmipd = TMDA.ofmipd:main'
                                             ] }
      , name = 'TMDA'
      , packages = find_packages()
@@ -40,7 +38,9 @@ setup( author = 'Jason R. Mastaler, Kevin Goodsell, Paul Jimenez, and others'
      , version = '1.2.0'
      , zip_safe = False
      , package_data = {}
-     , install_requires = []
+     , install_requires = ['pyOpenSSL>=0.14',
+                           'python-pam>=1.8.2'
+                           ]
      , extras_require = { }
      , tests_require = ['virtualenv>=1.11',
                         'pytest',

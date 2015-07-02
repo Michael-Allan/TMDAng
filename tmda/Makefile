@@ -1,13 +1,28 @@
 
+PIP=./env/bin/pip3.4
+PYTEST=./env/bin/py.test
+
 env:
-	virtualenv env
-	./env/bin/pip install -e .
+	virtualenv --python=python3.4 env
+	$(PIP) install -e .
 
 test: env
-	if [ ! -f ./env/bin/py.test ]; then ./env/bin/pip install pytest ; fi
-	cd tests && ../env/bin/py.test
+	if [ ! -f $(PYTEST) ]; then \
+		$(PIP) install pytest ;\
+		$(PIP) install pytest-runfailed ;\
+	fi
+	cd tests && ../$(PYTEST) -v
 
-clean:
+testf: env
+	cd tests && ../$(PYTEST) --failed -v
+
+testf-clean: env clean-testf
+	cd tests && ../$(PYTEST) --failed -v
+
+clean-testf:
+	rm -rf tests/.pytest
+
+clean: clean-testf
 	rm -rf env build dist
 
 build:
