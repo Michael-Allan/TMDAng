@@ -1,5 +1,6 @@
 import sys
 import os
+import base64
 import socket
 import subprocess
 import re
@@ -13,8 +14,19 @@ authFile = os.path.join(filesDir, 'test-ofmipd.auth')
 certFile = os.path.join(filesDir, 'test-ofmipd.cert')
 keyFile = os.path.join(filesDir, 'test-ofmipd.key')
 
+# Utility functions
+
+def b64_encode(s):
+    """base64 encoding without the trailing newline."""
+    return base64.encodestring(bytes(s, 'ascii'))[:-1]
+
+
+def b64_decode(s):
+    """base64 decoding."""
+    return base64.decodestring(bytes(s, 'ascii'))
+
+
 class TestOfmipdServer(object):
-    _script = os.path.join(rootDir, 'bin', 'tmda-ofmipd')
     _commonServerOpts = ['--configdir=%s' % homeDir]
     _sslServerOpts = ['--ssl-cert=%s' % certFile,
                       '--ssl-key=%s' % keyFile]
@@ -42,7 +54,7 @@ class TestOfmipdServer(object):
     def start(self):
         # With sys.executable, we make sure the server runs under the same
         # Python version.
-        serverOpts = [sys.executable, self._script]
+        serverOpts = [sys.executable, '-m', 'TMDA.ofmipd']
         serverOpts.extend(self._commonServerOpts)
         serverOpts.extend(self._authOpts)
 
@@ -111,7 +123,7 @@ class TestOfmipdServer(object):
         self._ssl = '--tls=%s' % option
 
     def addOptions(self, opts):
-        if isinstance(opts, basestring):
+        if isinstance(opts, str):
             opts = [opts]
 
         self._extraOpts.extend(opts)
@@ -206,18 +218,18 @@ class TestOfmipdClient(object):
             self.connect(True)
 
         userpass = '%s\x00%s\x00%s' % (username, username, password)
-        userpass = userpass.encode('base64')[:-1]
+        userpass = b64_encode(userpass).decode('ascii')
         (code, lines) = self.exchange('AUTH PLAIN %s\r\n' % userpass)
         assert code == 235, 'AUTH failed, code=%d' % code
 
     def receiveUntil(self, finished):
         data = ''
         while not finished(data):
-            data += self._sock.recv(200)
+            data += self._sock.recv(200).decode('ascii', 'replace')
         return data
 
     def send(self, data):
-        self._sock.send(data)
+        self._sock.send(bytes(data, 'utf-8', 'replace'))
 
     def exchange(self, msg):
         self.send(msg)

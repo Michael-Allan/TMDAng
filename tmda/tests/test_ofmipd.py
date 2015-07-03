@@ -7,6 +7,7 @@ import os
 import lib.util
 lib.util.testPrep()
 from lib.ofmipd import TestOfmipdServer, ServerClientMixin
+import base64
 
 verbose = False
 
@@ -118,25 +119,41 @@ class OptionalStartTlsServerResponses(ServerResponseTestMixin,
     def checkAuthTypes(self, authTypes):
         self.assertEqual(set(authTypes), set(['LOGIN', 'PLAIN', 'CRAM-MD5']))
 
+
+# Utility functions
+
+def b64_encode(s):
+    """base64 encoding without the trailing newline."""
+    return base64.encodestring(bytes(s, 'ascii'))[:-1]
+
+def b64_encodes(s):
+    return b64_encode(s).decode('ascii')
+
+
+def b64_decode(s):
+    """base64 decoding."""
+    return base64.decodestring(bytes(s, 'ascii'))
+
+
+
 # These authentication tests differ from the tests in test-ofmipd-auth.py file
 # in that these test authentication between an SMTP client and the tmda-ofmipd
 # server. test-ofmipd-auth.py tests tmda-ofmipd's backend authentication
 # methods, such as authenticating against a password file or a different server.
 class AuthenticationTests(FileAuthServerClientMixin, unittest.TestCase):
     def authPlain(self, username, password, expectedCode):
-        authString = '\x00'.join([username, username, password])
-        authString = authString.encode('base64')[:-1]
+        authString = b64_encode('\x00'.join([username, username, password])).decode('ascii')
         (code, lines) = self.client.exchange('AUTH PLAIN %s\r\n' % authString)
 
         self.assertEqual(code, expectedCode,
             'username: %r password: %r code: %d' % (username, password, code))
 
     def authLogin(self, username, password, firstCode, secondCode):
-        userString = username.encode('base64')[:-1]
-        passString = password.encode('base64')[:-1]
+        userString = b64_encode(username).decode('ascii')
+        passString = b64_encode(password).decode('ascii')
 
-        userPrompt = 'Username:'.encode('base64')[:-1]
-        passPrompt = 'Password:'.encode('base64')[:-1]
+        userPrompt = b64_encode('Username:').decode('ascii')
+        passPrompt = b64_encode('Password:').decode('ascii')
 
         (code, lines) = self.client.exchange('AUTH LOGIN\r\n')
         self.assertEqual(code, 334)
@@ -158,12 +175,13 @@ class AuthenticationTests(FileAuthServerClientMixin, unittest.TestCase):
         self.assertEqual(code, 334)
         self.assertEqual(len(lines), 1)
 
-        ticket = lines[0].decode('base64')
+        ticket = b64_decode(lines[0])
+        password = bytes(password, 'ascii')
         digest = hmac.new(password, ticket, md5).hexdigest()
-        message = '%s %s' % (username, digest)
-        message = message.encode('base64')[:-1]
+        message = username + ' ' + digest
+        message = b64_encode(message).decode('ascii')
 
-        (code, lines) = self.client.exchange('%s\r\n' % message)
+        (code, lines) = self.client.exchange(message + '\r\n')
         self.assertEqual(code, expectedCode,
             'username: %r password: %r code: %d' % (username, password, code))
 
@@ -291,9 +309,8 @@ class IpAuthMapTest(unittest.TestCase):
 
     def importOfmipd(self):
         # Cheap way of "importing" a script.
-        self.module = {}
-        ofmipd = os.path.join(lib.util.rootDir, 'bin', 'tmda-ofmipd')
-        execfile(ofmipd, self.module)
+        import ofmipd
+        self.module = ofmipd
 
     def testAuthMapRead(self):
         RemoteAuthenticator = self.module['RemoteAuthenticator']

@@ -150,5 +150,5 @@ def make_fingerprint(hdrlist):
     removed."""
     fp = hmac.new(Defaults.CRYPT_KEY, digestmod=sha1)
     for hdr in hdrlist:
-        fp.update(hdr)
+        fp.update(bytes(hdr, 'utf-8'))
     return base64.encodestring(fp.digest())[:-2] # Remove '=\n'

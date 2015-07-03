@@ -1,6 +1,5 @@
 import unittest
-import sys
-import urlparse
+from urllib import parse as urlparse
 
 import lib.util
 lib.util.testPrep()
@@ -60,9 +59,7 @@ class UrlSplit(unittest.TestCase):
             ),
         ]
 
-        print
         for (url, expected) in tests:
-            print 'Testing url', url
             result = Util.urlsplit(url)
             self.checkSplitUrl(result, expected)
 

@@ -2,7 +2,7 @@ import unittest
 import sys
 import time
 import os
-import cStringIO as StringIO
+from io import StringIO
 from email.parser import Parser
 
 import lib.util

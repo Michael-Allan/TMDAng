@@ -1,6 +1,8 @@
 
 PIP=./env/bin/pip3.4
 PYTEST=./env/bin/py.test
+PYTEST_ARGS=-v --timeout=60
+
 
 env:
 	virtualenv --python=python3.4 env
@@ -10,14 +12,15 @@ test: env
 	if [ ! -f $(PYTEST) ]; then \
 		$(PIP) install pytest ;\
 		$(PIP) install pytest-runfailed ;\
+		$(PIP) install pytest-timeout ;\
 	fi
-	cd tests && ../$(PYTEST) -v
+	cd tests && ../$(PYTEST) $(PYTEST_ARGS)
 
 testf: env
-	cd tests && ../$(PYTEST) --failed -v
+	cd tests && ../$(PYTEST) --failed $(PYTEST_ARGS)
 
 testf-clean: env clean-testf
-	cd tests && ../$(PYTEST) --failed -v
+	cd tests && ../$(PYTEST) --failed $(PYTEST_ARGS)
 
 clean-testf:
 	rm -rf tests/.pytest

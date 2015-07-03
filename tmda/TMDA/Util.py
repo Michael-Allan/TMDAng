@@ -384,7 +384,9 @@ def runcmd(cmd, instr=None, stdout=None, stderr=None):
 
     process = subprocess.Popen(cmd, stdin=PIPE, stdout=stdout, stderr=stderr,
                                shell=use_shell)
-    (stdoutdata, stderrdata) = process.communicate(bytes(instr, 'utf-8'))
+    if type(instr) == str:
+        instr = bytes(instr, 'utf-8')
+    (stdoutdata, stderrdata) = process.communicate(instr)
 
     return (process.returncode, stdoutdata, stderrdata)
 

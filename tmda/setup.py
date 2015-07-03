@@ -29,7 +29,15 @@ setup( author = 'Jason R. Mastaler, Kevin Goodsell, Paul Jimenez, and others'
      , description = ('The Tagged Message Delivery Agent (TMDA) is a set of '
                       'anti-spam measures, including white-listing, black-listing,'
                       'challenge-response, and tagged addresses')
-     , entry_points = { 'console_scripts': [ 'tmda-ofmipd = TMDA.ofmipd:main'
+     , entry_points = { 'console_scripts': ['tmda-ofmipd = TMDA.ofmipd:main',
+                                            'tmda-inject = TMDA.inject:main',
+                                            'tmda-address = TMDA.address:main',
+                                            'tmda-check-address = TMDA.check_address:main',
+                                            'tmda-filter = TMDA.filter:main',
+                                            'tmda-keygen = TMDA.keygen:main',
+                                            'tmda-pending = TMDA.pending:main',
+                                            'tmda-rfilter = TMDA.rfilter:main',
+                                            'tmda-sendmail = TMDA.sendmail:main',
                                             ] }
      , name = 'TMDA'
      , packages = find_packages()

@@ -25,16 +25,15 @@
 
 
 from email.utils import parseaddr
-import email
 import os
 import sys
 import time
 
-import Defaults
-import Errors
-import FilterParser
-import Util
-from TMDA.Queue.Queue import Queue
+from . import Defaults
+from . import Errors
+from . import FilterParser
+from . import Util
+from .Queue.Queue import Queue
 
 
 Q = Queue()
@@ -77,7 +76,7 @@ class Queue:
     def initQueue(self):
         """Initialize the queue with the given parameters (see __init__)."""
         if not Q.exists():
-            raise Errors.QueueError, 'Pending Queue does not exist, exiting.'
+            raise Errors.QueueError('Pending Queue does not exist, exiting.')
 
         # Replace any `-' in the message list with those messages provided
         # via standard input.  (Since it's pointless to call it twice,
@@ -97,7 +96,7 @@ class Queue:
         if not self.msgs and not wantedstdin:
             self.msgs = Q.fetch_ids()
 
-        self.msgs.sort()
+        self.msgs = sorted(list(self.msgs))
         if self.descending:
             self.msgs.reverse()
 
@@ -222,7 +221,7 @@ class Queue:
             self.count = self.count + 1
             try:
                 M = Message(msgid, self.command_recipient)
-            except Errors.MessageError, obj:
+            except Errors.MessageError as obj:
                 self.cPrint(obj)
                 continue
 
@@ -335,7 +334,7 @@ class InteractiveQueue(Queue):
             elif ans == "q":
                 return 0
             else:
-                self.Print('\n', "I don't understand %s" % (`inp`))
+                self.Print('\n', "I don't understand %r" % inp)
                 self.dispose = 'pass'
         except KeyboardInterrupt:
             self.Print()
@@ -360,7 +359,7 @@ class Message:
     def __init__(self, msgid, recipient = None, fullParse = False):
         self.msgid = msgid
         if not Q.find_message(self.msgid):
-            raise Errors.MessageError, '%s not found!' % self.msgid
+            raise Errors.MessageError('%s not found!' % self.msgid)
         self.msgobj = Q.fetch_message(self.msgid, fullParse=fullParse)
         self.recipient = recipient
         if self.recipient is None:
@@ -372,7 +371,7 @@ class Message:
 
     def release(self):
         """Release a message from the pending queue."""
-        import Cookie
+        import http.cookies as Cookie
         if Defaults.PENDING_RELEASE_APPEND:
             Util.append_to_file(self.append_address,
                                 Defaults.PENDING_RELEASE_APPEND)
@@ -519,7 +518,7 @@ class Message:
     def getConfirmAddress(self):
         if not self.confirm_accept_address:
             if self.recipient:
-                import Cookie
+                import http.cookies as Cookie
                 (timestamp, pid) = self.msgid.split('.')
                 self.confirm_accept_address =   Cookie.make_confirm_address(
                                                 self.recipient, timestamp, pid,

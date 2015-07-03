@@ -25,14 +25,7 @@ from optparse import OptionParser, make_option
 import os
 import sys
 
-try:
-    import paths
-except ImportError:
-    pass
-del paths
-
-from TMDA import Version
-
+from . import Version
 
 # option parsing
 

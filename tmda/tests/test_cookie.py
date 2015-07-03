@@ -104,22 +104,22 @@ class Fingerprints(unittest.TestCase):
         headers = ['foo', 'bar', 'baz', '012456789', ' ' * 40]
 
         fingerprints = [
-            'afqG6DMhSxO4KpBDUsu56bh2INg',
-            'tfw9skV5Y0+l/rfwjzjCjt/cjqY',
-            'h4Hss53veo3tdIHjdjsKXqbxrmY',
-            'zJVrBypI7Sk46bTy5WPJbikGgGc',
-            'vIKcOmXJedx4BUbWwN/u3xohzTA',
+            b'afqG6DMhSxO4KpBDUsu56bh2INg',
+            b'tfw9skV5Y0+l/rfwjzjCjt/cjqY',
+            b'h4Hss53veo3tdIHjdjsKXqbxrmY',
+            b'zJVrBypI7Sk46bTy5WPJbikGgGc',
+            b'vIKcOmXJedx4BUbWwN/u3xohzTA',
         ]
         for (i, header) in enumerate(headers):
             calculated = Cookie.make_fingerprint(headers[:i+1])
             self.assertEqual(calculated, fingerprints[i])
 
         fingerprints = [
-            'vIKcOmXJedx4BUbWwN/u3xohzTA',
-            'vYzrXyiBag83ut1pRtRsmjZVxUI',
-            '4sWBNkCH3NK6xnOqaLOoEY8kIc8',
-            'BJ5xPBh0C9zby06hUTz9zUMdQVE',
-            'yejQZ5jg5Lc35uit/xLz8oAmAN4',
+            b'vIKcOmXJedx4BUbWwN/u3xohzTA',
+            b'vYzrXyiBag83ut1pRtRsmjZVxUI',
+            b'4sWBNkCH3NK6xnOqaLOoEY8kIc8',
+            b'BJ5xPBh0C9zby06hUTz9zUMdQVE',
+            b'yejQZ5jg5Lc35uit/xLz8oAmAN4',
         ]
         for (i, header) in enumerate(headers):
             calculated = Cookie.make_fingerprint(headers[i:])

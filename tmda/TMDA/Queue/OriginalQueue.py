@@ -38,9 +38,9 @@ import glob
 import os
 import time
 
-from TMDA import Defaults
-from TMDA import Util
-from TMDA.Queue.Queue import Queue
+from .. import Defaults
+from .. import Util
+from .Queue import Queue
 
 
 
@@ -59,7 +59,7 @@ class OriginalQueue(Queue):
 
     def _create(self):
         if not self.exists():
-            os.makedirs(Defaults.PENDING_DIR, 0700)
+            os.makedirs(Defaults.PENDING_DIR, 0o700)
 
 
     def _convert(self):

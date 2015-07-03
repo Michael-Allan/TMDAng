@@ -1219,14 +1219,9 @@ def process_message_vdomain(peer, mailfrom, rcpttos, data, auth_username):
     the standard TMDA proxy in that authenticated users are not system
     (/etc/passwd) users."""
     # Set up partial tmda-inject command line.
-    execdir = os.path.dirname(os.path.abspath(program))
-    inject_cmd = [os.path.join(execdir, 'tmda-inject')] + rcpttos
-    userinfo = auth_username.split('@', 1)
-    user = userinfo[0]
-    if len(userinfo) > 1:
-        domain = userinfo[1]
-    else:
-        domain = ''
+    inject_cmd = [sys.executable, '-m', 'TMDA.inject'] + rcpttos
+    userinfo = auth_username.split('@', 1) + ['']
+    user, domain = userinfo[:2]
     # If running as uid 0, fork in preparation for running the tmda-inject
     # process and change UID and GID to the virtual domain user.  This is
     # for VMailMgr, where each virtual domain is a system (/etc/passwd)
@@ -1287,16 +1282,13 @@ def process_message_sysuser(peer, mailfrom, rcpttos, data, auth_username):
         cmd = os.environ.get('TMDA_SENDMAIL_PROGRAM') or '/usr/sbin/sendmail'
         inject_cmd = [cmd, '-f', mailfrom, '-i', '--'] + rcpttos
     else:
-        execdir = os.path.dirname(os.path.abspath(program))
-        inject_path = os.path.join(execdir, 'tmda-inject')
-        inject_cmd = [inject_path, '-c', tmda_configfile] + rcpttos
+        inject_cmd = [sys.executable, '-m', 'TMDA.inject']
+        inject_cmd += ['-c', tmda_configfile] + rcpttos
 
     # Set HOME so "~" will always work in the .tmda/* files.
     # gethomedir() is no good in unit tests.
-    if 'TMDA_TEST_HOME' in os.environ:
-        os.environ['HOME'] = os.environ['TMDA_TEST_HOME']
-    else:
-        os.environ['HOME'] = Util.gethomedir(auth_username)
+    os.environ['HOME'] = os.environ.get('TMDA_TEST_HOME', Util.gethomedir(auth_username))
+
     # If running as uid 0, fork the tmda-inject process, and
     # then change UID and GID to the authenticated user.
     if running_as_root:
