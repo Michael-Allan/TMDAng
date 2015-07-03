@@ -371,7 +371,7 @@ class Message:
 
     def release(self):
         """Release a message from the pending queue."""
-        import http.cookies as Cookie
+        from . import Cookie
         if Defaults.PENDING_RELEASE_APPEND:
             Util.append_to_file(self.append_address,
                                 Defaults.PENDING_RELEASE_APPEND)
@@ -403,8 +403,7 @@ class Message:
         self.msgobj['X-TMDA-Released'] = Util.make_date()
         # For messages released via tmda-cgi, add the IP address and
         # browser info of the releaser for easier tracing.
-        if os.environ.has_key('REMOTE_ADDR') and \
-                os.environ.has_key('HTTP_USER_AGENT'):
+        if 'REMOTE_ADDR' in os.environ and 'HTTP_USER_AGENT' in os.environ:
             cgi_header = "%s (%s)" % (os.environ.get('REMOTE_ADDR'),
                                       os.environ.get('HTTP_USER_AGENT'))
             del self.msgobj['X-TMDA-CGI']
@@ -518,7 +517,7 @@ class Message:
     def getConfirmAddress(self):
         if not self.confirm_accept_address:
             if self.recipient:
-                import http.cookies as Cookie
+                from . import Cookie
                 (timestamp, pid) = self.msgid.split('.')
                 self.confirm_accept_address =   Cookie.make_confirm_address(
                                                 self.recipient, timestamp, pid,

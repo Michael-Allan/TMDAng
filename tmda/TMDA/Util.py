@@ -617,7 +617,7 @@ def sendmail(msgstr, envrecip, envsender):
                '-f', envsender, '--', envrecip)
         runcmd_checked(cmd, msgstr)
     elif Defaults.MAIL_TRANSPORT == 'smtp':
-        import SMTP
+        from . import SMTP
         server = SMTP.Connection()
         server.sendmail(envsender, envrecip, msgstr)
         server.quit()
@@ -625,7 +625,13 @@ def sendmail(msgstr, envrecip, envsender):
         raise ConfigError("Invalid MAIL_TRANSPORT method: " + Defaults.MAIL_TRANSPORT)
 
 
-def decode_header(str):
+def _str(s):
+    if type(s) == bytes:
+        return s.decode('utf8')
+    return s
+
+
+def decode_header(s):
     """Accept a possibly encoded message header as a string, and
     return a decoded string if it can be decoded.
 
@@ -636,14 +642,9 @@ def decode_header(str):
     """
     try:
         from email import header
-        parts = []
-        pairs = header.decode_header(str)
-        for pair in pairs:
-            parts.append(pair[0])
-        decoded_string = ' '.join(parts)
-        return decoded_string
+        return ' '.join(_str(pair[0]) for pair in header.decode_header(s))
     except email.errors.HeaderParseError:
-        return str
+        return _str(s)
 
 
 def headers_as_list(msg):
@@ -794,7 +795,7 @@ def pickleit(object, file, proto=2):
     """
     tempfile.tempdir = os.path.dirname(file)
     tmpname = tempfile.mkstemp()[1]
-    fp = open(tmpname, 'w')
+    fp = open(tmpname, 'wb')
     pickle.dump(object, fp, proto)
     fp.close()
     os.rename(tmpname, file)
@@ -803,7 +804,7 @@ def pickleit(object, file, proto=2):
 
 def unpickle(file):
     """Retrieve and return object from file."""
-    fp = open(file, 'r')
+    fp = open(file, 'rb')
     object = pickle.load(fp)
     fp.close()
     return object
@@ -901,57 +902,52 @@ def maketext(templatefile, vardict):
         searchdirs = []
         searchdirs.append(os.environ.get('TMDA_TEMPLATE_DIR'))
         if Defaults.TEMPLATE_DIR:
+            tdirs = []
             if Defaults.TEMPLATE_DIR_MATCH_SENDER:
                 sender = os.environ.get('SENDER').lower()
-                searchdirs.append(os.path.join(Defaults.TEMPLATE_DIR, sender))
-                try:
-                    domainparts = sender.split('@', 1)[1].split('.')
-                    for i in range(len(domainparts)):
-                        searchdirs.append(os.path.join
-                                          (Defaults.TEMPLATE_DIR, '.'.join(domainparts)))
-                        del domainparts[0]
-                except IndexError:
-                    pass
-            if Defaults.TEMPLATE_DIR_MATCH_RECIPIENT:
-                recipient = os.environ.get('TMDA_RECIPIENT').lower()
-                searchdirs.append(os.path.join(Defaults.TEMPLATE_DIR, recipient))
-                try:
-                    recippart, domainpart = recipient.split('@', 1)
-                    recipparts = recippart.split(Defaults.RECIPIENT_DELIMITER)
-                    for i in range(len(recipparts)):
-                        searchdirs.append(os.path.join
-                                          (Defaults.TEMPLATE_DIR,
-                                           Defaults.RECIPIENT_DELIMITER.join(recipparts) +
-                                           "@" + domainpart))
-                        del recipparts[-1]
+                tdirs = [sender]
+                _, domainpart = (sender.split('@', 1) + [''])[:2]
+                if domainpart:
                     domainparts = domainpart.split('.')
                     for i in range(len(domainparts)):
-                        searchdirs.append(os.path.join
-                                          (Defaults.TEMPLATE_DIR, '.'.join(domainparts)))
-                        del domainparts[0]
-                except IndexError:
-                    pass
+                        tdirs.append('.'.join(domainparts[i:]))
+            if Defaults.TEMPLATE_DIR_MATCH_RECIPIENT:
+                recipient = os.environ.get('TMDA_RECIPIENT').lower()
+                tdirs.append(recipient)
+
+                recippart, domainpart = (recipient.split('@', 1) + [''])[:2]
+                delim = Defaults.RECIPIENT_DELIMITER
+
+                recipparts = recippart.split(delim)
+                for i in range(len(recipparts), step=-1):
+                    tdirs.append(delim.join(recipparts[:i]) + "@" + domainpart)
+
+                if domainpart:
+                    domainparts = domainpart.split('.')
+                    for i in range(len(domainparts)):
+                        tdirs.append('.'.join(domainparts[i:]))
+
+            searchdirs += [ os.path.join(Defaults.TEMPLATE_DIR, d) for d in tdirs ]
             searchdirs.append(Defaults.TEMPLATE_DIR)
         searchdirs.append(os.path.join(Defaults.PARENTDIR, 'templates'))
         searchdirs.append(os.path.join(sys.prefix, 'share/tmda'))
         searchdirs.append('/etc/tmda/')
         # Start scanning.
-        for dir in searchdirs:
-            if not dir: continue
-            filename = os.path.join(dir, templatefile)
+        for d in searchdirs:
+            if not d: continue
+            filename = os.path.join(d, templatefile)
             if os.path.exists(filename):
                 foundit = filename
                 break
+
     if foundit is None:
         raise IOError("Can't find " + templatefile)
-    else:
-        fp = open(foundit, 'r')
-        template = fp.read()
-        fp.close()
-        localdict = Defaults.__dict__.copy()
-        localdict.update(vardict)
-        text = template % localdict
-        return text
+
+    template = open(foundit, 'r').read()
+    localdict = Defaults.__dict__.copy()
+    localdict.update(vardict)
+    text = template % localdict
+    return text
 
 
 def filter_match(filename, recip, sender=None):

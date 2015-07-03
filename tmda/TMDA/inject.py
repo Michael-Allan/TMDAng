@@ -85,10 +85,10 @@ if opts.filter_outgoing:
     os.environ['TMDA_FILTER_OUTGOING'] = opts.filter_outgoing
 
 
-from TMDA import Cookie
-from TMDA import Defaults
-from TMDA import FilterParser
-from TMDA import Util
+from . import Cookie
+from . import Defaults
+from . import FilterParser
+from . import Util
 
 from email.utils import formataddr, getaddresses, parseaddr
 import socket
@@ -264,7 +264,7 @@ def inject_message(resending,
     Util.add_headers(msg, nice_headers)
     # Optionally, log this transmission.
     if Defaults.LOGFILE_OUTGOING:
-        from TMDA import MessageLogger
+        from . import MessageLogger
         logger = MessageLogger.MessageLogger(Defaults.LOGFILE_OUTGOING,
                                              msg,
                                              envsender = envelope_sender,

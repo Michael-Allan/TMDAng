@@ -37,16 +37,16 @@ import stat
 import time
 
 
-from TMDA import Defaults
-from TMDA import Errors
-from TMDA import Util
-from TMDA.Queue.Queue import Queue
+from .. import Defaults
+from .. import Errors
+from .. import Util
+from .Queue import Queue
 
 
 def alarm_handler(signum, frame):
     """Handle an alarm."""
-    print 'Signal handler called with signal', signum
-    raise IOError, "Couldn't open device!"
+    print('Signal handler called with signal', signum)
+    raise IOError( "Couldn't open device!")
 
 def lock_file(fp):
     """Do fcntl file locking."""
@@ -74,9 +74,9 @@ class MaildirQueue(Queue):
     def _create(self):
         if not self.exists():
             dirpath = Defaults.PENDING_DIR
-            os.makedirs(os.path.join(dirpath, 'cur'), 0700)
-            os.mkdir(os.path.join(dirpath, 'new'), 0700)
-            os.mkdir(os.path.join(dirpath, 'tmp'), 0700)
+            os.makedirs(os.path.join(dirpath, 'cur'), 0o700)
+            os.mkdir(os.path.join(dirpath, 'new'), 0o700)
+            os.mkdir(os.path.join(dirpath, 'tmp'), 0o700)
 
 
     def _convert(self):
@@ -161,7 +161,7 @@ class MaildirQueue(Queue):
                 return msg
         else:
             # couldn't find message, defer and retry until we find it
-            raise IOError, "couldn't locate %s, will retry" % m
+            raise IOError( "couldn't locate %s, will retry" % m)
 
 
     def delete_message(self, mailid):
@@ -223,16 +223,16 @@ class MaildirQueue(Queue):
         if not (os.path.isdir(dir_tmp) and
                 os.path.isdir(dir_cur) and
                 os.path.isdir(dir_new)):
-            raise Errors.DeliveryError, 'not a Maildir! (%s)' % maildir
+            raise Errors.DeliveryError( 'not a Maildir! (%s)' % maildir)
 
         fname_tmp = os.path.join(dir_tmp, filename)
         fname_new = os.path.join(dir_new, filename)
 
         # File must not already exist.
         if os.path.exists(fname_tmp):
-            raise Errors.DeliveryError, fname_tmp + 'already exists!'
+            raise Errors.DeliveryError( fname_tmp + 'already exists!')
         if os.path.exists(fname_new):
-            raise Errors.DeliveryError, fname_new + 'already exists!'
+            raise Errors.DeliveryError( fname_new + 'already exists!')
 
         # Get user & group of maildir.
         s_maildir = os.stat(maildir)
@@ -241,22 +241,21 @@ class MaildirQueue(Queue):
 
         # Open file to write.
         try:
-            fd = os.open(fname_tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0600)
-            fp = os.fdopen(fd, 'wb', 4096)
-            os.chmod(fname_tmp, 0600)
+            f = open(fname_tmp, 'w', encoding='utf-8')
+            f.write(message)
+            f.flush()
+            os.fsync(f.fileno())
+            f.close()
+            os.chmod(fname_tmp, 0o600)
             try:
                 os.chown(fname_tmp, maildir_owner, maildir_group)
             except OSError:
                 # Not running as root, can't chown file.
                 pass
-            fp.write(message)
-            fp.flush()
-            os.fsync(fp.fileno())
-            fp.close()
-        except (OSError, IOError), o:
+        except (OSError, IOError) as o:
             signal.alarm(0)
-            raise Errors.DeliveryError, \
-                'Failure writing file %s (%s)' % (fname_tmp, o)
+            raise Errors.DeliveryError( \
+                'Failure writing file %s (%s)' % (fname_tmp, o))
 
         # Move message file from Maildir/tmp to Maildir/new
         try:
@@ -268,9 +267,10 @@ class MaildirQueue(Queue):
                 os.unlink(fname_tmp)
             except:
                 pass
-            raise Errors.DeliveryError, 'failure renaming "%s" to "%s"' \
-                   % (fname_tmp, fname_new)
+            raise Errors.DeliveryError( 'failure renaming "%s" to "%s"' \
+                   % (fname_tmp, fname_new))
 
         # Cancel the alarm.
         signal.alarm(0)
         signal.signal(signal.SIGALRM, signal.SIG_DFL)
+

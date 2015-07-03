@@ -57,15 +57,8 @@ EX_TEMPFAIL = 75
 HOMEDIR = os.path.expanduser('~')
 
 # TMDA parent directory.
-progpath = os.path.abspath(sys.argv[0])
-if os.path.islink(progpath):
-    progdir = os.path.dirname(progpath)
-    linkpath = os.readlink(progpath)
-    if os.path.isabs(linkpath):
-        progpath = linkpath
-    else:
-        progpath = os.path.normpath(progdir + '/' + linkpath)
-PARENTDIR = os.path.split(os.path.dirname(progpath))[0] # '../'
+PARENTDIR = os.path.abspath(os.path.dirname(__file__))
+
 
 # Look for the global config file in the environment first, and then
 # default to /etc/tmdarc.  If one exists, read it before TMDARC. Make
@@ -144,7 +137,7 @@ if not 'DATADIR' in vars():
 # Possible choices are "exim", "postfix", "qmail", or "sendmail".
 # Default is qmail
 if not 'MAIL_TRANSFER_AGENT' in vars():
-    MAIL_TRANSFER_AGENT = "qmail"
+    MAIL_TRANSFER_AGENT = "postfix"
 
 # DELIVERY
 # The default delivery instruction for successful messages, or TMDA's

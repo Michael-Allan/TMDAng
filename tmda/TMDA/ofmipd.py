@@ -101,11 +101,14 @@ class Authenticator(object):
 
     def _cram_md5_check(self, username, ticket, response):
         import hmac
+        from hashlib import md5
 
         pw = self._get_password(username)
         if pw is None:
             return False
-        digest = hmac.new(pw, ticket).hexdigest()
+        ticket = bytes(ticket, 'utf-8')
+        digest = hmac.new(pw, ticket, md5).hexdigest()
+        logger.debug("cram-md5: response: %r digest: %r\n" % (response, digest))
         return digest == response
 
     # Override _has_passwords and _get_password in Authenticators that have
@@ -1287,7 +1290,9 @@ def process_message_sysuser(peer, mailfrom, rcpttos, data, auth_username):
 
     # Set HOME so "~" will always work in the .tmda/* files.
     # gethomedir() is no good in unit tests.
-    os.environ['HOME'] = os.environ.get('TMDA_TEST_HOME', Util.gethomedir(auth_username))
+    os.environ['HOME'] = os.environ.get('TMDA_TEST_HOME')
+    if not os.environ['HOME']:
+        os.environ['HOME'] = Util.gethomedir(auth_username)
 
     # If running as uid 0, fork the tmda-inject process, and
     # then change UID and GID to the authenticated user.

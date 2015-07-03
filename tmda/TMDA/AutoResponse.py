@@ -34,9 +34,9 @@ from email.utils import formataddr, parseaddr
 import os
 import time
 
-import Defaults
-import Util
-import Version
+from . import Defaults
+from . import Util
+from . import Version
 
 
 DEFAULT_CHARSET = 'US-ASCII'
@@ -119,7 +119,7 @@ class AutoResponse:
                        'Content-Transfer-Encoding', 'Content-Disposition',
                        'Content-Description']
         for h in bad_headers:
-            if self.bouncemsg.has_key(h):
+            if h in self.bouncemsg:
                 del self.bouncemsg[h]
         textpart = MIMEText(self.bouncemsg.get_payload(), 'plain',
                             self.bodycharset)
@@ -195,12 +195,12 @@ class AutoResponse:
         # References
         refs = []
         for h in ['references', 'message-id']:
-            if self.msgin.has_key(h):
-                refs = refs + self.msgin.get(h).split()
+            if h in self.msgin:
+                refs += self.msgin.get(h).split()
         if refs:
             self.mimemsg['References'] = '\n\t'.join(refs)
         # In-Reply-To
-        if self.msgin.has_key('message-id'):
+        if 'message-id' in self.msgin:
             self.mimemsg['In-Reply-To'] =  self.msgin.get('message-id')
         self.mimemsg['To'] = self.recipient
         # Some auto responders respect this header.
@@ -237,7 +237,7 @@ class AutoResponse:
                                           Util.normalize_sender(self.recipient))
         # Create ~/.tmda/responses if necessary.
         if not os.path.exists(Defaults.RESPONSE_DIR):
-            os.makedirs(Defaults.RESPONSE_DIR, 0700)
+            os.makedirs(Defaults.RESPONSE_DIR, 0o700)
         fp = open(os.path.join(Defaults.RESPONSE_DIR,
                                response_filename), 'w')
         fp.close()

@@ -22,17 +22,12 @@
 
 from optparse import OptionParser, make_option
 
+import io
 import os
 import sys
 import stat
 
-try:
-    import paths
-except ImportError:
-    pass
-del paths
-
-from TMDA import Version
+from . import Version
 
 
 # If -S / --vhome-script flag is given on command line, use it to determine the
@@ -145,9 +140,8 @@ if opts.environ:
             os.environ[key] = value
         except (KeyError, ValueError):
             parser.error('bad environment key-value pair - "%s"' % pair)
-if opts.vhomescript:
-    if os.environ.has_key('EXT') and os.environ.has_key('HOST'):
-        setvuserhomedir(opts.vhomescript)
+if opts.vhomescript and 'EXT' in os.environ and 'HOST' in os.environ:
+    setvuserhomedir(opts.vhomescript)
 
 
 # Defer the delivery if the sticky bit is set on $HOME (chmod +t).
@@ -162,16 +156,16 @@ if homesticky:
     sys.exit(75)
 
 
-from TMDA import Defaults
-from TMDA import Address
-from TMDA import Cookie
-from TMDA import Errors
-from TMDA import FilterParser
-from TMDA import MTA
-from TMDA import Util
-from TMDA.Queue.Queue import Queue
+from . import Defaults
+from . import Address
+from . import Cookie
+from . import Errors
+from . import FilterParser
+from . import MTA
+from . import Util
+from .Queue.Queue import Queue
 
-from cStringIO import StringIO
+from io import StringIO
 from email.utils import parseaddr, getaddresses
 import fileinput
 import string
@@ -201,7 +195,7 @@ Q = Q.init()
 mta = MTA.init(Defaults.MAIL_TRANSFER_AGENT, Defaults.DELIVERY)
 
 # Read sys.stdin into a temporary variable for later access.
-stdin = StringIO(sys.stdin.read())
+stdin = StringIO(io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8').read())
 
 # The incoming message as an email.Message object.
 msgin = Util.msg_from_file(stdin)
@@ -335,7 +329,7 @@ def logit(action, msg):
     if not recipient_address:
         return
     if Defaults.LOGFILE_INCOMING:
-        from TMDA import MessageLogger
+        from . import MessageLogger
         logger = MessageLogger.MessageLogger(Defaults.LOGFILE_INCOMING,
                                              msgin,
                                              envsender = envelope_sender,
@@ -376,7 +370,7 @@ def autorespond_to_sender(sender):
                         'List-Archive', 'Mailing-List', 'X-Mailing-List',
                         'X-ML-Name', 'X-List']
         for hdr in list_headers:
-            if msgin.has_key(hdr):
+            if hdr in msgin:
                 guilty_header = '%s: %s' % (hdr, msgin.get(hdr))
                 break
     # "Precedence:" value junk, bulk, or list
@@ -434,7 +428,7 @@ def autorespond_to_sender(sender):
 def send_bounce(bounce_message, type):
     """Send a auto-response back to the envelope sender address."""
     if autorespond_to_sender(envelope_sender) and auto_reply:
-        from TMDA import AutoResponse
+        from . import AutoResponse
         ar = AutoResponse.AutoResponse(msgin, bounce_message,
                                        type, envelope_sender)
         ar.create()

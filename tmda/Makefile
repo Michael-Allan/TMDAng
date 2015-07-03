@@ -27,7 +27,9 @@ clean-testf:
 
 clean: clean-testf
 	rm -rf env build dist
+	find . -name __pycache__ | xargs rm -rf
+	find . -name \*.pyc | xargs rm -f
 
-build:
-	python setup.py bdist_wheel
+wheel:
+	python3 setup.py bdist_wheel
 

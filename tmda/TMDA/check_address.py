@@ -24,15 +24,9 @@ from optparse import OptionParser, make_option
 
 import os
 import sys
-import string
 import time
 
-try:
-    import paths
-except ImportError:
-    pass
-
-from TMDA import Version
+from . import Version
 
 
 # option parsing
@@ -63,7 +57,7 @@ parser = OptionParser(option_list=opt_list, version=Version.TMDA,
 (opts, args) = parser.parse_args()
 
 if opts.full_version:
-    print Version.ALL
+    print(Version.ALL)
     sys.exit()
 if opts.config_file:
      os.environ['TMDARC'] = opts.config_file
@@ -71,8 +65,8 @@ if len(args) < 1:
     parser.error('ADDRESS to check is required.')
 
 
-from TMDA import Defaults
-from TMDA import Address
+from . import Defaults
+from . import Address
 
 
 def formattime(timestamp):
@@ -99,14 +93,14 @@ def main():
 
     try:
         addr.verify(sender_address)
-        print "STATUS: VALID"
+        print("STATUS: VALID")
         if addr.tag() in Defaults.TAGS_DATED:
-            print "EXPIRES: %s" % formattime(addr.timestamp())
-    except Address.ExpiredAddressError, msg:
-        print "STATUS:", msg
-        print "EXPIRED: %s" % formattime(addr.timestamp())
-    except Address.AddressError, msg:
-        print "STATUS:", msg
+            print("EXPIRES: %s" % formattime(addr.timestamp()))
+    except Address.ExpiredAddressError as msg:
+        print("STATUS:", msg)
+        print("EXPIRED: %s" % formattime(addr.timestamp()))
+    except Address.AddressError as msg:
+        print("STATUS:", msg)
 
 
 if __name__ == '__main__':

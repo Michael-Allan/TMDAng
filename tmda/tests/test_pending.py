@@ -168,8 +168,9 @@ class QueueLoopTestMixin(object):
         del Defaults.DB_PENDING_DELETE_APPEND
         del Defaults.PENDING_WHITELIST_RELEASE
 
-        reload(Defaults)
-        reload(Util)
+        import imp
+        imp.reload(Defaults)
+        imp.reload(Util)
 
     # DERIVED CLASS OVERRIDES
     dispose = None

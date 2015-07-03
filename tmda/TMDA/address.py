@@ -25,12 +25,7 @@ from optparse import OptionParser, make_option
 import os
 import sys
 
-try:
-    import paths
-except ImportError:
-    pass
-
-from TMDA import Version
+from . import Version
 
 # option parsing
 
@@ -99,7 +94,7 @@ if opts.config_file:
     os.environ['TMDARC'] = opts.config_file
 
 
-from TMDA import Defaults
+from . import Defaults
 
 
 # default is a 'dated' address
@@ -118,7 +113,7 @@ elif opts.dated or opts.dated_timeout:
         os.environ['TMDA_TIMEOUT'] = opts.dated_timeout
 
 
-from TMDA import Address
+from . import Address
 
 
 def main():

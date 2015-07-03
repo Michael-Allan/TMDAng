@@ -45,8 +45,8 @@ def main():
         #execdir = os.path.dirname(os.path.abspath(program))
         #execfile(os.path.join(execdir, 'tmda-rfilter'))
         #exec(compile(open(os.path.join(execdir, 'tmda-rfilter')).read(), os.path.join(execdir, 'tmda-rfilter'), 'exec'))
-        from TMDA.rfilter import main as rfilter
-        rfilter()
+        from . import rfilter
+        rfilter.main()
 
     except KeyboardInterrupt:
         pass
@@ -60,7 +60,7 @@ def main():
             tb1 = sys.exc_info()
             import time
 
-            from TMDA.Defaults import LOGFILE_DEBUG
+            from .Defaults import LOGFILE_DEBUG
             if not LOGFILE_DEBUG:
                 raise NameError('LOGFILE_DEBUG is not defined')
             print('See', LOGFILE_DEBUG, 'for traceback')

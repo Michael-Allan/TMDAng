@@ -22,12 +22,10 @@
 """Mail Transfer Agent (MTA) related objects."""
 
 
-import os
 import sys
 
-import Deliver
-import Errors
-import Util
+from . import Deliver
+from . import Errors
 
 
 class MTA:
@@ -113,13 +111,11 @@ class Sendmail(MTA):
 
 def init(mta, default_delivery):
     """Factory function which instantiates the corresponding MTA subclass."""
-    if mta == 'exim':
-        return Exim(default_delivery)
-    elif mta == 'postfix':
-        return Postfix(default_delivery)
-    elif mta == 'qmail':
-        return Qmail(default_delivery)
-    elif mta == 'sendmail':
-        return Sendmail(default_delivery)
-    else:
-        raise Errors.ConfigError, "Unsupported MAIL_TRANSFER_AGENT: " + mta
+    klass = {'exim' : Exim,
+             'postfix': Postfix,
+             'qmail': Qmail,
+             'sendmail': Sendmail
+             }
+    if mta not in klass:
+        raise Errors.ConfigError( "Unsupported MAIL_TRANSFER_AGENT: " + mta)
+    return klass[mta](default_delivery)

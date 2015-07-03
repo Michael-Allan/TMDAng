@@ -26,14 +26,7 @@ import os
 import sys
 import socket
 
-try:
-    import paths
-except ImportError:
-    pass
-
-import email
-
-from TMDA import Version
+from . import Version
 
 # option parsing
 
@@ -241,7 +234,7 @@ for g in (gengroup, actngroup, msggroup):
 (opts, args) = parser.parse_args()
 
 if opts.full_version:
-    print Version.ALL
+    print(Version.ALL)
     sys.exit()
 
 if opts.config_file:
@@ -263,13 +256,7 @@ if opts.vhomescript:
     if opts.vhomeuser:
         user = opts.vhomeuser
     else:
-        try:
-            user = os.environ['USER']
-        except:
-            try:
-                user = os.environ['LOGNAME']
-            except:
-                user = None
+        user = os.environ.get('USER', os.environ.get('LOGNAME'))
     domain = None
     if opts.vhomedomain:
         domain = opts.vhomedomain
@@ -296,8 +283,8 @@ if opts.vhomescript:
         sys.stdout.write('invocation failed: %s\n' % ( cmd, ))
         sys.exit(1)
 
-from TMDA import Pending
-from TMDA import Errors
+from . import Pending
+from . import Errors
 
 
 def main():
@@ -321,8 +308,8 @@ def main():
             pretend = opts.pretend
             ).initQueue()
         q.mainLoop()
-    except Errors.QueueError, obj:
-        print obj
+    except Errors.QueueError as obj:
+        print(obj)
         sys.exit(1)
 
 # This is the end my friend.

@@ -29,54 +29,48 @@ import getopt
 import os
 import sys
 
-try:
-    import paths
-except ImportError:
-    pass
+from . import Version
+from .Util import runcmd
 
-from TMDA import Version
-
-
-program = sys.argv[0]
-header_recipients = None
-execdir = os.path.dirname(os.path.abspath(program))
-arglist = ['']
 
 def usage(code, msg=''):
-    print __doc__ % globals()
+    print(__doc__ % globals())
     if msg:
-        print msg
+        print(msg)
     sys.exit(code)
-
-try:
-    opts, args = getopt.getopt(sys.argv[1:],
-                               'Vhvimte:f:p:o:B:F:EJx', ['version',
-                                                         'help'])
-except getopt.error, msg:
-    usage(1, msg)
-
-for opt, arg in opts:
-    if opt in ('-h', '--help'):
-        usage(0)
-    elif opt == '-V':
-        print Version.ALL
-        sys.exit()
-    elif opt == '--version':
-        print Version.TMDA
-        sys.exit()
-    elif opt == '-t':
-        header_recipients = True
-    elif opt == '-F':
-        os.environ['NAME'] = arg
 
 
 def main():
+    header_recipients = None
+    arglist = ['']
+
+    try:
+        opts, args = getopt.getopt(sys.argv[1:],
+                                   'Vhvimte:f:p:o:B:F:EJx', ['version',
+                                                             'help'])
+    except getopt.error as msg:
+        usage(1, msg)
+
+    for opt, arg in opts:
+        if opt in ('-h', '--help'):
+            usage(0)
+        elif opt == '-V':
+            print(Version.ALL)
+            sys.exit()
+        elif opt == '--version':
+            print(Version.TMDA)
+            sys.exit()
+        elif opt == '-t':
+            header_recipients = True
+        elif opt == '-F':
+            os.environ['NAME'] = arg
+
     # If recipients are provided as args, pass them to tmda-inject
     # unless `-t' was specified.
     if args and not header_recipients:
-        for a in args:
-            arglist.append(a)
-    os.execv(os.path.join(execdir, 'tmda-inject'), arglist)
+        arglist += args
+
+    runcmd(sys.excutable, '-m', 'TMDA.inject', *arglist)
 
 
 # This is the end my friend.
