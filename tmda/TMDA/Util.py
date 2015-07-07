@@ -26,7 +26,6 @@ from io import StringIO
 import pickle
 import email
 import email.utils
-import fileinput
 import fnmatch
 import os
 import subprocess
@@ -344,7 +343,7 @@ def make_date(timesecs=None):
 
 def file_to_dict(file, dict):
     """Process and add then each line of a textfile to a dictionary."""
-    for line in fileinput.input(file):
+    for line in open(file):
         line = line.strip()
         # Comment or blank line?
         if line == '' or line[0] in '#':
@@ -361,7 +360,7 @@ def file_to_dict(file, dict):
 def file_to_list(file):
     """Process and then append each line of file to list."""
     list = []
-    for line in fileinput.input(file):
+    for line in open(file):
         line = line.strip()
         # Comment or blank line?
         if line == '' or line[0] in '#':
@@ -398,7 +397,7 @@ def runcmd_checked(cmd, instr=None, stdout=None, stderr=None):
     (r, stdoutdata, stderrdata) = runcmd(cmd, instr, stdout, stderr)
     if r > 0:
         raise Exception('command %r exited with error %d' % (cmd, r))
-    elif r < 0:
+    if r < 0:
         raise Exception('command %r exited with signal %d' % (cmd, -r))
 
     return (stdoutdata, stderrdata)
@@ -408,29 +407,25 @@ def writefile(contents, fullpathname):
     """Simple function to write contents to a file."""
     if os.path.exists(fullpathname):
         raise IOError(fullpathname + ' already exists')
-    else:
-        file = open(fullpathname, 'w')
-        file.write(contents)
-        file.close()
+    with open(fullpathname, 'w') as f:
+        f.write(contents)
 
 
-def append_to_file(str, fullpathname):
+def append_to_file(s, fullpathname):
     """Append a string to a text file if it isn't already in there."""
     if os.path.exists(fullpathname):
-        for line in fileinput.input(fullpathname):
+        for line in open(fullpathname):
             line = line.strip().lower()
             # Comment or blank line?
             if line == '' or line[0] in '#':
                 continue
             else:
                 line = line.expandtabs().split('#')[0].strip()
-                bare = str.expandtabs().split('#')[0].strip()
+                bare = s.expandtabs().split('#')[0].strip()
                 if bare.lower() == line:
-                    fileinput.close()
                     return 0
-    file = open(fullpathname, 'a+')
-    file.write(str.strip() + '\n')
-    file.close()
+    with open(fullpathname, 'a+') as f:
+        f.write(s.strip() + '\n')
 
 
 def pager(str):
@@ -627,7 +622,7 @@ def sendmail(msgstr, envrecip, envsender):
 
 def _str(s):
     if type(s) == bytes:
-        return s.decode('utf8')
+        return s.decode('utf8', 'ignore')
     return s
 
 

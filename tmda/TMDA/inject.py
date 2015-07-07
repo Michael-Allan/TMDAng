@@ -24,6 +24,7 @@ from optparse import OptionParser, make_option
 
 import os
 import sys
+import string
 
 from . import Version
 
@@ -92,7 +93,6 @@ from . import Util
 
 from email.utils import formataddr, getaddresses, parseaddr
 import socket
-import string
 
 
 # Just check Defaults.FILTER_OUTGOING for syntax errors and possible
@@ -161,7 +161,7 @@ def make_field(cookie_type, cookie_option, from_address, to_address):
         field = cookie_option
     elif cookie_type in ('ext','extension') and cookie_option:
         # Send a message with a tagged (extension added) address.
-        (username, hostname) = string.split(from_address,'@')
+        (username, hostname) = from_address.split('@')
         field = username + Defaults.RECIPIENT_DELIMITER + \
                 cookie_option + '@' + hostname
     elif cookie_type in ('kw','keyword') and cookie_option:
@@ -340,7 +340,7 @@ def main():
         x_tmda = msgout.get('x-tmda')
         log_msg = '%s: %s' % ('X-TMDA', x_tmda)
         # X-TMDA should only have one field.
-        if len(string.split(x_tmda)) == 1:
+        if len(x_tmda.split()) == 1:
             actions = { 'from' : FilterParser.splitaction(x_tmda) }
         # Delete `X-TMDA' before sending.
         del msgout['x-tmda']
