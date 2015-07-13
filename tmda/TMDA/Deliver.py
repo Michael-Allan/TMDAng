@@ -63,53 +63,46 @@ class Deliver:
         self.option = delivery_option
         self.env_sender = os.environ.get('SENDER')
 
-    def get_instructions(self):
+    def _get_instructions(self, option):
         """Process the delivery_option string, returning a tuple
         containing the type of delivery to be performed, and the
         normalized delivery destination.  e.g,
 
         ('forward', 'me@new.job.com')
         """
-        self.delivery_type = self.delivery_dest = None
-        firstchar = self.option[0]
-        lastchar = self.option[-1]
+        first = option[0]
+        last = option[-1]
         # A program line begins with a vertical bar.
-        if firstchar == '|':
-            self.delivery_type = 'program'
-            self.delivery_dest = self.option[1:].strip()
+        if first == '|':
+            return ('program', option[1:].strip())
         # A forward line begins with an ampersand.  If the address
         # begins with a letter or number, you may leave out the
         # ampersand.
-        elif firstchar == '&' or firstchar.isalnum():
-            self.delivery_type = 'forward'
-            self.delivery_dest = self.option
-            if firstchar == '&':
-                self.delivery_dest = self.delivery_dest[1:].strip()
+        if first == '&' or first.isalnum():
+            return ('forward', option.strip('&').strip())
         # An mmdf line begins with a :
-        elif firstchar == ':':
-            self.delivery_type = 'mmdf'
-            self.delivery_dest = self.option[1:].strip()
-            if self.delivery_dest.startswith('~'):
-                self.delivery_dest = os.path.expanduser(self.delivery_dest)
+        if first == ':':
+            return ('mmdf', os.path.expanduser(option[1:].strip()))
         # An mbox line begins with a slash or tilde, and does not end
         # with a slash.
-        elif (firstchar == '/' or firstchar == '~') and (lastchar != '/'):
-            self.delivery_type = 'mbox'
-            self.delivery_dest = self.option
-            if firstchar == '~':
-                self.delivery_dest = os.path.expanduser(self.delivery_dest)
+        if first in ('/', '~') and last != '/':
+            return ('mbox', os.path.expanduser(option))
         # A maildir line begins with a slash or tilde and ends with a
         # slash.
-        elif (firstchar == '/' or firstchar == '~') and (lastchar == '/'):
-            self.delivery_type = 'maildir'
-            self.delivery_dest = self.option
-            if firstchar == '~':
-                self.delivery_dest = os.path.expanduser(self.delivery_dest)
-        elif self.option == '_filter_':
-            self.delivery_type = 'filter'
-            self.delivery_dest = 'stdout'
+        if first in ('/', '~') and last == '/':
+            return ('mbox', os.path.expanduser(option))
+        # internal setting meaning 'filter to stdout'
+        if option == '_filter_':
+            return ('filter', 'stdout')
+        return None, None
+
+
+    def get_instructions(self):
+        """As _get_instructions, but raise if a valid one is not found
+        """
+        self.delivery_type, self.delivery_dest = self._get_instructions(self.option)
         # Unknown delivery instruction.
-        else:
+        if self.delivery_type is None:
             raise Errors.DeliveryError( \
                   'Delivery instruction "%s" is not recognized!' % self.option)
         return (self.delivery_type, self.delivery_dest)
@@ -118,52 +111,34 @@ class Deliver:
         """Deliver the message appropriately."""
         # Optionally, remove some headers.
         Util.purge_headers(self.msg, Defaults.PURGED_HEADERS_DELIVERY)
-        (type, dest) = self.get_instructions()
-        if type == 'program':
-            # don't wrap headers, don't escape From, add From_ line
-            self.__deliver_program(Util.msg_as_string(self.msg, 0, 0, 1),
-                                   dest)
-        elif type == 'forward':
-            # don't wrap headers, don't escape From, don't add From_ line
-            self.__deliver_forward(Util.msg_as_string(self.msg), dest)
-        elif type == 'mmdf':
+        (boxtype, dest) = self.get_instructions()
+        if boxtype in ( 'mmdf', 'mbox', 'maildir' ):
             # Ensure destination path exists.
             if not os.path.exists(dest):
                 raise Errors.DeliveryError( \
                       'Destination "%s" does not exist!' % dest)
-            # Refuse to deliver to an mmdf if it's a symlink, to
-            # prevent symlink attacks.
-            elif os.path.islink(dest):
+        if boxtype in ( 'mmdf', 'mbox' ):
+            # Refuse to deliver if it's a symlink, to prevent symlink attacks.
+            if os.path.islink(dest):
                 raise Errors.DeliveryError( \
                       'Destination "%s" is a symlink!' % dest)
-            else:
-                # don't wrap headers, escape From, add From_ line
-                self.__deliver_mmdf(Util.msg_as_string(self.msg, 0, 1, 1),
-                                    dest)
-        elif type == 'mbox':
-            # Ensure destination path exists.
-            if not os.path.exists(dest):
-                raise Errors.DeliveryError( \
-                      'Destination "%s" does not exist!' % dest)
-            # Refuse to deliver to an mbox if it's a symlink, to
-            # prevent symlink attacks.
-            elif os.path.islink(dest):
-                raise Errors.DeliveryError( \
-                      'Destination "%s" is a symlink!' % dest)
-            else:
-                # don't wrap headers, escape From, add From_ line
-                self.__deliver_mbox(Util.msg_as_string(self.msg, 0, 1, 1),
-                                    dest)
-        elif type == 'maildir':
-            # Ensure destination path exists.
-            if not os.path.exists(dest):
-                raise Errors.DeliveryError( \
-                      'Destination "%s" does not exist!' % dest)
-            else:
-                # don't wrap headers, don't escape From, don't add From_ line
-                self.__deliver_maildir(Util.msg_as_string(self.msg), dest)
-        elif type == 'filter':
-            sys.stdout.write(Util.msg_as_string(self.msg))
+
+        deliver = {'program': self.__deliver_program,
+                   'forward': self.__deliver_forward,
+                   'mmdf': self.__deliver_mmdf,
+                   'mbox': self.__deliver_mbox,
+                   'maildir': self.__deliver_maildir,
+                   'filter': sys.stdout.write
+                   }[boxtype]
+
+        escape_from = boxtype in ('mmdf', 'mbox')
+        add_from_ = boxtype in ('program', 'mmdf', 'mbox')
+
+        msg = Util.msg_as_string(self.msg,
+                             mangle_from_=escape_from,
+                             unixfrom=add_from_)
+        deliver(msg, dest)
+
 
     def __deliver_program(self, message, program):
         """Deliver message to /bin/sh -c program."""
@@ -346,8 +321,10 @@ class Deliver:
 
         # Open file to write.
         try:
-            fd = os.open(fname_tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-            fp = os.fdopen(fd, 'w', 4096)
+            with open(fname_tmp, 'w') as f:
+                f.write(message)
+                f.flush()
+                os.fsync(f.fileno())
             os.chmod(fname_tmp, 0o600)
             try:
                 # If root, change the message to be owned by the
@@ -356,10 +333,6 @@ class Deliver:
             except OSError:
                 # Not running as root, can't chown file.
                 pass
-            fp.write(message)
-            fp.flush()
-            os.fsync(fp.fileno())
-            fp.close()
         except (OSError, IOError) as o:
             signal.alarm(0)
             raise Errors.DeliveryError( \
