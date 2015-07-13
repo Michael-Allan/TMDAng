@@ -39,12 +39,12 @@ setup( author = 'Jason R. Mastaler, Kevin Goodsell, Paul Jimenez, and others'
                                             'tmda-rfilter = TMDA.rfilter:main',
                                             'tmda-sendmail = TMDA.sendmail:main',
                                             ] }
-     , name = 'TMDA'
+     , name = 'TMDAng'
      , packages = find_packages()
      , package_data =  { 'TMDA': [ 'templates/*' ] }
      , py_modules = []
      , url = 'http://tmda.net/'
-     , version = '1.2.0'
+     , version = '1.0.0'
      , zip_safe = False
      , install_requires = ['pyOpenSSL>=0.14',
                            'python-pam>=1.8.2'
