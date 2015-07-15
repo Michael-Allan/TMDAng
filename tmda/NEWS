@@ -5,6 +5,16 @@ file in this directory as well.
 
 ======================================================================
 
+TMDAng 1.0.0 --
+
+* TMDA commandline utilities are now ported to python3.4
+
+* ..and available as 'TMDAng' on pypi
+
+* Source is now available on github at http://github.com/pjz/TMDAng
+
+======================================================================
+
 TMDA 1.1.12 "Macallan" --
 
 * tmda-ofmipd now has native STARTTLS and SSL support courtesy of

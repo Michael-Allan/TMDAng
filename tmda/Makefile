@@ -33,3 +33,13 @@ clean: clean-testf
 wheel:
 	python3 setup.py bdist_wheel
 
+release:
+	@if git tag | grep -q tmdang-`python3 setup.py -V` ; then\
+		echo "Already released this version.";\
+		echo "Update the version number and try again.";\
+		exit 1;\
+	fi
+	python3 setup.py bdist_wheel upload
+	python3 setup.py sdist --formats=zip,gztar,bztar upload
+	git tag tmdang-`python3 setup.py -V`
+	git push --tags

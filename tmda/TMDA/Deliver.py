@@ -90,7 +90,7 @@ class Deliver:
         # A maildir line begins with a slash or tilde and ends with a
         # slash.
         if first in ('/', '~') and last == '/':
-            return ('mbox', os.path.expanduser(option))
+            return ('maildir', os.path.expanduser(option))
         # internal setting meaning 'filter to stdout'
         if option == '_filter_':
             return ('filter', 'stdout')

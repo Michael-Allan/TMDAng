@@ -1,3 +1,11 @@
+TMDAng:
+
+Installing TMDAng (which right now is just the command-line utilities)
+should be as simple as 'pip install tmdang'.
+
+---
+TMDA:
+
 The latest installation instructions and usage information can be
 found on the TMDA homepage:
 

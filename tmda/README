@@ -1,3 +1,12 @@
+TMDAng
+Copyright (C) 2015 Paul Jimenez <pj@place.org>
+
+TMDA ported to python 3.4 and packaged for PyPI.
+Based on TMDA (see below), released under the same license.
+
+Development of TMDAng is at http://github.com/pjz/TMDAng
+
+
 Tagged Message Delivery Agent (TMDA)
 Copyright (C) 2001-2007 Jason R. Mastaler <jason@mastaler.com>
 
