@@ -321,7 +321,7 @@ class Deliver:
 
         # Open file to write.
         try:
-            with open(fname_tmp, 'w') as f:
+            with open(fname_tmp, 'w', encoding='utf-8') as f:
                 f.write(message)
                 f.flush()
                 os.fsync(f.fileno())
