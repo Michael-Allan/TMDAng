@@ -103,7 +103,7 @@ if opts.filter_match:
     Util.filter_match(Defaults.FILTER_OUTGOING, recip, sender)
     sys.exit()
 
-msgout = Util.msg_from_file(sys.stdin, isBytes=True)
+msgout = Util.msg_from_file(sys.stdin.buffer, isBytes=True)
 orig_msgout_as_string = Util.msg_as_string(msgout)
 orig_msgout_size = len(orig_msgout_as_string)
 orig_msgout_body_as_raw_string = Util.body_as_raw_string(msgout)
