@@ -8,7 +8,7 @@ TMDA is an open source software application designed to significantly reduce the
 
 TMDA-ng is a port of that code (written for python <=2.6) to python 3.4+
 
-![Travis status](https://travis-ci.org/pjz/TMDAng.svg?branch=master)
+[![Build Status](https://travis-ci.org/pjz/TMDAng.svg?branch=master)](https://travis-ci.org/pjz/TMDAng)
 
 TMDA-ng also aims to:
 
