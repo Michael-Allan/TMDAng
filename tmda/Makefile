@@ -42,4 +42,5 @@ release:
 	python3 setup.py bdist_wheel upload
 	python3 setup.py sdist --formats=zip,gztar,bztar upload
 	git tag tmdang-`python3 setup.py -V`
+	git push
 	git push --tags

@@ -22,7 +22,6 @@
 
 from optparse import OptionParser, make_option
 
-import io
 import os
 import sys
 import stat
@@ -165,7 +164,6 @@ from . import MTA
 from . import Util
 from .Queue.Queue import Queue
 
-from io import StringIO
 from email.utils import parseaddr, getaddresses
 import fileinput
 import time
@@ -194,10 +192,11 @@ Q = Q.init()
 mta = MTA.init(Defaults.MAIL_TRANSFER_AGENT, Defaults.DELIVERY)
 
 # Read sys.stdin into a temporary variable for later access.
-stdin = StringIO(io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8').read())
+from io import BytesIO
+stdin = BytesIO(sys.stdin.buffer.read())
 
 # The incoming message as an email.Message object.
-msgin = Util.msg_from_file(stdin)
+msgin = Util.msg_from_file(stdin, isBytes=True)
 
 # Original message contents as a string.
 orig_msgin_as_string = Util.msg_as_string(msgin)
@@ -770,29 +769,22 @@ def main():
     ext = address_extension
     cookie_type = cookie_value = None
     if ext:
-        ext = ext.lower()
-        ext_split = ext.split(Defaults.RECIPIENT_DELIMITER)
+        ext_split = ext.lower().split(Defaults.RECIPIENT_DELIMITER)
         cookie_value = ext_split[-1]
-        try:
+        if len(ext_split) > 1:
             cookie_type = ext_split[-2]
-        except IndexError:
-            # not a tagged address
-            pass
     # The list of sender e-mail addresses comes from the envelope
     # sender, the "From:" header, the "Reply-To:" header, and possibly
     # the "X-Primary-Address" header.
-    sender_dict = { envelope_sender: None }
+    senders = { envelope_sender.lower() }
     confirm_append_address = Util.confirm_append_address(x_primary_address,
                                                          envelope_sender)
-    if confirm_append_address and confirm_append_address != envelope_sender:
-        sender_dict[confirm_append_address] = None
-    from_list = getaddresses(msgin.get_all('from', []))
-    replyto_list = getaddresses(msgin.get_all('reply-to', []))
-    for list in from_list, replyto_list:
-        for a in list:
-            emaddy = a[1]
-            sender_dict[emaddy] = None
-    sender_list = [ addr.lower() for addr in sender_dict.keys() ]
+    if confirm_append_address:
+        senders.add(confirm_append_address)
+    senders.union(a[1].lower() for a in getaddresses(msgin.get_all('from', [])))
+    senders.union(a[1].lower() for a in getaddresses(msgin.get_all('reply-to', [])))
+
+    sender_list = list(senders)
     # Process confirmation messages first.
     confirm_done_hdr = msgin.get('x-tmda-confirm-done')
     if confirm_done_hdr:

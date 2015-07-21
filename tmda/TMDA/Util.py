@@ -524,7 +524,7 @@ def confirm_append_address(xp, rp):
     return rp
 """
 
-def msg_from_file(fp, fullParse=False):
+def msg_from_file(fp, fullParse=False, isBytes=False):
     """Read a file and parse its contents into a Message object model.
     Replacement for email.message_from_file().
 
@@ -532,16 +532,10 @@ def msg_from_file(fp, fullParse=False):
     to parse the message body, instead setting the payload to the raw
     body as a string.  This is faster, and also helps us avoid
     problems trying to parse spam with broken MIME bodies."""
-    from email.message import Message
-    if fullParse:
-        from email.parser import Parser
-        msg = Parser(Message).parse(fp)
-    else:
-        from email.parser import HeaderParser
-        msg = HeaderParser(Message).parse(fp)
-    #msg.header_parsed = True
-    return msg
-
+    from email.parser import Parser, HeaderParser, BytesParser, BytesHeaderParser
+    parsers = ((HeaderParser, Parser), (BytesHeaderParser, BytesParser))
+    parser = parsers[int(isBytes)][int(fullParse)]
+    return parser().parse(fp)
 
 def msg_as_string(msg, maxheaderlen=False, mangle_from_=False, unixfrom=False):
     """A more flexible replacement for Message.as_string().  The default

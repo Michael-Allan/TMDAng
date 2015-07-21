@@ -81,7 +81,7 @@ class MessageLogger:
         self.__close()
 
     def __writeline(self, name, value):
-        self.log.write('%s: %s\n' % (name.rjust(4), value))
+        self.log.write('%s: %r\n' % (name.rjust(4), value))
 
     def __close(self):
         self.log.write('\n')
