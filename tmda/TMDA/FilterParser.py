@@ -33,7 +33,6 @@ import os
 import re
 import string
 import sys
-import types
 
 from . import Defaults
 from . import Util
@@ -375,7 +374,7 @@ class FilterParser:
                 break
             except ParsingError:
                 raise
-            except Error:
+            except Error as e:
                 # A non-fatal parsing error occurred.  Set up the
                 # exception but keep going. The exception will be
                 # raised at the end of the file and will contain a
@@ -1077,34 +1076,33 @@ class FilterParser:
                 except IOError:
                     if 'optional' not in args:
                         raise
+                if source == 'body-file' and msg_body:
+                    content = msg_body
+                elif source == 'headers-file' and msg_headers:
+                    content = msg_headers
                 else:
-                    if source == 'body-file' and msg_body:
-                        content = msg_body
-                    elif source == 'headers-file' and msg_headers:
-                        content = msg_headers
-                    else:
-                        content = None
-                    re_flags = re.MULTILINE
-                    if 'case' not in args:
-                        re_flags = re_flags | re.IGNORECASE
-                    for line in match_list:
-                        mo = self.matches.match(line)
-                        if mo:
-                            expr = mo.group(2) or mo.group(3)
-                            if content and re.search(expr,content,re_flags):
-                                found_match = 1
-                                break
+                    content = None
+                re_flags = re.MULTILINE
+                if 'case' not in args:
+                    re_flags = re_flags | re.IGNORECASE
+                for line in match_list:
+                    mo = self.matches.match(line)
+                    if mo:
+                        expr = mo.group(2) or mo.group(3)
+                        if content and re.search(expr,content,re_flags):
+                            found_match = 1
+                            break
                 if found_match:
                     break
             if source == 'size' and msg_size:
                 match_list = list(match)
                 operator = match_list[0] # first character should be < or >
-                bytes = ''.join(match_list)[1:] # rest is the size
+                bytesize = ''.join(match_list)[1:] # rest is the size
                 found_match = None
                 if operator == '<':
-                    found_match = int(msg_size) < int(bytes)
+                    found_match = int(msg_size) < int(bytesize)
                 elif operator == '>':
-                    found_match = int(msg_size) > int(bytes)
+                    found_match = int(msg_size) > int(bytesize)
                 if found_match:
                     break
         if found_match:

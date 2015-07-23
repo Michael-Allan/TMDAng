@@ -341,34 +341,17 @@ def make_date(timesecs=None):
     return email.utils.formatdate(timesecs, localtime=True)
 
 
-def file_to_dict(file, dict):
-    """Process and add then each line of a textfile to a dictionary."""
-    for line in open(file):
-        line = line.strip()
-        # Comment or blank line?
-        if line == '' or line[0] in '#':
-            continue
-        else:
-            fields = line.split()
-            key = fields[0]
-            key = key.lower()
-            value = fields[1]
-            dict[key] = value
-    return dict
-
-
-def file_to_list(file):
+def file_to_list(filename):
     """Process and then append each line of file to list."""
-    list = []
-    for line in open(file):
+    result = []
+    for line in open(filename, encoding='utf-8'):
         line = line.strip()
         # Comment or blank line?
         if line == '' or line[0] in '#':
             continue
-        else:
-            line = line.expandtabs().split('#')[0].strip()
-            list.append(line)
-    return list
+        line = line.expandtabs().split('#')[0].strip()
+        result.append(line)
+    return result
 
 
 def runcmd(cmd, instr=None, stdout=None, stderr=None):
@@ -414,16 +397,16 @@ def writefile(contents, fullpathname):
 def append_to_file(s, fullpathname):
     """Append a string to a text file if it isn't already in there."""
     if os.path.exists(fullpathname):
-        for line in open(fullpathname):
+        for line in open(fullpathname, encoding='utf-8'):
             line = line.strip().lower()
             # Comment or blank line?
             if line == '' or line[0] in '#':
                 continue
-            else:
-                line = line.expandtabs().split('#')[0].strip()
-                bare = s.expandtabs().split('#')[0].strip()
-                if bare.lower() == line:
-                    return 0
+            line = line.expandtabs().split('#')[0].strip()
+            bare = s.expandtabs().split('#')[0].strip()
+            if bare.lower() == line:
+                # Already there
+                return
     with open(fullpathname, 'a+') as f:
         f.write(s.strip() + '\n')
 
@@ -720,18 +703,12 @@ def build_cdb(filename):
         tmpname = os.path.split(tempfile.mktemp())[1]
         cdb = cdb.cdbmake(cdbname, cdbname + '.' + tmpname)
         for line in file_to_list(filename):
-            linef = line.split()
-            key = linef[0].lower()
-            try:
-                value = linef[1]
-            except IndexError:
-                value = ''
-            cdb.add(key, value)
+            key, value = (line.split() + [''])[:1]
+            cdb.add(key.lower(), value)
         cdb.finish()
     except:
-        return 0
-    else:
-        return 1
+        return False
+    return True
 
 
 def build_dbm(filename):
@@ -745,13 +722,8 @@ def build_dbm(filename):
         tmpname = tempfile.mktemp()
         db = dbm.open(tmpname, 'n')
         for line in file_to_list(filename):
-            linef = line.split()
-            key = linef[0].lower()
-            try:
-                value = linef[1]
-            except IndexError:
-                value = ''
-            db[key] = value
+            key, value = (line.split() + [''])[:1]
+            db[key.lower()] = value
         db.close()
         for f in glob.glob(tmpname + '*'):
             (tmppath, tmpname) = os.path.split(tmpname)
@@ -759,9 +731,8 @@ def build_dbm(filename):
             newf = os.path.join(tmppath, newf)
             os.rename(f, newf)
     except:
-        return 0
-    else:
-        return 1
+        return False
+    return True
 
 
 def pickleit(object, file, proto=2):
