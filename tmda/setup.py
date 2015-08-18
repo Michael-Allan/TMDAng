@@ -44,7 +44,7 @@ setup( author = 'Jason R. Mastaler, Kevin Goodsell, Paul Jimenez, and others'
      , package_data =  { 'TMDA': [ 'templates/*' ] }
      , py_modules = []
      , url = 'http://tmda.net/'
-     , version = '1.0.2'
+     , version = '1.0.3'
      , zip_safe = False
      , install_requires = ['pyOpenSSL>=0.14',
                            'python-pam>=1.8.2'
