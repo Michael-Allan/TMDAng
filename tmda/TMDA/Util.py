@@ -396,15 +396,17 @@ def writefile(contents, fullpathname):
 
 def append_to_file(s, fullpathname):
     """Append a string to a text file if it isn't already in there."""
+    bare = bytes(s.expandtabs().split('#')[0].strip().lower(), 'utf-8')
     if os.path.exists(fullpathname):
-        for line in open(fullpathname, encoding='utf-8'):
-            line = line.strip().lower()
+        for inline in open(fullpathname, 'rb'):
+            line = inline.strip().lower()
             # Comment or blank line?
-            if line == '' or line[0] in '#':
+            if line[:1] in [ b'', b'#']:
                 continue
-            line = line.expandtabs().split('#')[0].strip()
-            bare = s.expandtabs().split('#')[0].strip()
-            if bare.lower() == line:
+            line = line.expandtabs()
+            line = line.split(b'#', 1)[0]
+            line = line.strip()
+            if bare == line:
                 # Already there
                 return
     with open(fullpathname, 'a+') as f:

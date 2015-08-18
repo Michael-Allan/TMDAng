@@ -1290,9 +1290,7 @@ def process_message_sysuser(peer, mailfrom, rcpttos, data, auth_username):
 
     # Set HOME so "~" will always work in the .tmda/* files.
     # gethomedir() is no good in unit tests.
-    os.environ['HOME'] = os.environ.get('TMDA_TEST_HOME')
-    if not os.environ['HOME']:
-        os.environ['HOME'] = Util.gethomedir(auth_username)
+    os.environ['HOME'] = os.environ.get('TMDA_TEST_HOME', Util.gethomedir(auth_username))
 
     # If running as uid 0, fork the tmda-inject process, and
     # then change UID and GID to the authenticated user.
