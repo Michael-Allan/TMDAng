@@ -786,8 +786,8 @@ class SMTPSession(asynchat.async_chat):
         unstandardized Microsoft invention.  Needed to support MS
         Outlook clients."""
         try:
-            username = b64_decode(b64username)
-            password = b64_decode(b64password)
+            username = b64_decode(b64username).decode('ascii', 'ignore')
+            password = b64_decode(b64password).decode('ascii', 'ignore')
         except:
             return 501
         self.__auth_username = username.lower()
