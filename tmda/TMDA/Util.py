@@ -614,6 +614,8 @@ def decode_header(s):
     an awkward interface IMO, especially when the header contains a
     mix of encoded and non-encoded parts.
     """
+    if s is None: # No such header.
+        return _str(s)
     try:
         from email import header
         return ' '.join(_str(pair[0]) for pair in header.decode_header(s))
