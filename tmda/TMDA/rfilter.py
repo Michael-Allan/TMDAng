@@ -781,8 +781,8 @@ def main():
                                                          envelope_sender)
     if confirm_append_address:
         senders.add(confirm_append_address)
-    senders.union(a[1].lower() for a in getaddresses(msgin.get_all('from', [])))
-    senders.union(a[1].lower() for a in getaddresses(msgin.get_all('reply-to', [])))
+    for a in getaddresses(msgin.get_all('from'    , [])): senders.add(a[1].lower())
+    for a in getaddresses(msgin.get_all('reply-to', [])): senders.add(a[1].lower())
 
     sender_list = list(senders)
     # Process confirmation messages first.
