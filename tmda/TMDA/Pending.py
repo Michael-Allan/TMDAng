@@ -315,7 +315,7 @@ class InteractiveQueue(Queue):
                  Defaults.DB_CONNECTION)):
                 message = message + ' / [b]lack'
             message = message + ' / [q]uit) [%s]: '
-            inp = raw_input(message % self.dispose_def)
+            inp = input(message % self.dispose_def)
             ans = inp[0:1].lower()
             if ans == "":
                 self.dispose = self.dispose_def
