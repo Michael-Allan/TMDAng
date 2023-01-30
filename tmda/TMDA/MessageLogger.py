@@ -62,10 +62,13 @@ class MessageLogger:
         if XPri:
             self.__writeline('XPri', XPri)
         envsender = self.vardict.get('envsender', None)
-        if (envsender
-            and parseaddr(self.msg.get('from'))[1] != envsender):
-            self.__writeline('Sndr', envsender)
         From = self.msg.get('from')
+        try:
+            to_log_sender = envsender and (not From or parseaddr(From)[1] != envsender)
+        except TypeError: # From `parseaddr`, e.g. when `From` contains Unicode 92 (PRIVATE USE TWO).
+            to_log_sender = True
+        if to_log_sender:
+            self.__writeline('Sndr', envsender)
         if From:
             self.__writeline('From', From)
         ReplyTo = self.msg.get('reply-to')
