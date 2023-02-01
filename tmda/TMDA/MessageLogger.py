@@ -70,7 +70,8 @@ class MessageLogger:
         if to_log_sender:
             self.__writeline('Sndr', envsender)
         if From:
-            self.__writeline('From', From)
+            self.__writeline('From', From) # May yield the likes of “From: <email.header.Header object at
+              # 0x7fbdecadecb0>”, at least when the `parseaddr` further above has thrown a `TypeError`.
         ReplyTo = self.msg.get('reply-to')
         if ReplyTo:
             self.__writeline('Rept', ReplyTo)
