@@ -116,7 +116,7 @@ class OriginalQueue(Queue):
 
     def fetch_message(self, mailid, fullParse=False):
         fpath = os.path.join(Defaults.PENDING_DIR, mailid + '.msg')
-        msg = Util.msg_from_file(file(fpath, 'rb'), fullParse=fullParse, isBytes=True)
+        msg = Util.msg_from_file(open(fpath, 'rb'), fullParse=fullParse, isBytes=True)
         return msg
 
 
