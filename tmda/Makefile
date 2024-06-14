@@ -1,11 +1,11 @@
 
-PIP=./env/bin/pip3.4
+PIP=./env/bin/pip3
 PYTEST=./env/bin/py.test
 PYTEST_ARGS=-v --timeout=60
 
 
 env:
-	virtualenv --python=python3.4 env
+	python -m venv env
 	$(PIP) install -e .
 
 test: env

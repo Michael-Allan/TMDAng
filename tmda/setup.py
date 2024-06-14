@@ -17,7 +17,7 @@ classifiers = ['Development Status :: 4 - Beta',
                'Operating System :: MacOS :: MacOS X',
                'Operating System :: Microsoft :: Windows',
                'Operating System :: POSIX',
-               'Programming Language :: Python :: 3.4',
+               'Programming Language :: Python :: 3.9',
                'Programming Language :: Python :: Implementation :: CPython',
                'Topic :: Communications :: Email :: Filters',
                'Topic :: Internet :: Proxy Servers',
@@ -44,7 +44,7 @@ setup( author = 'Jason R. Mastaler, Kevin Goodsell, Paul Jimenez, and others'
      , package_data =  { 'TMDA': [ 'templates/*' ] }
      , py_modules = []
      , url = 'http://tmda.net/'
-     , version = '1.0.3'
+     , version = '1.0.4'
      , zip_safe = False
      , install_requires = ['pyOpenSSL>=0.14',
                            'python-pam>=1.8.2'
